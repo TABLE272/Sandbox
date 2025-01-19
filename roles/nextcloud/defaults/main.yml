@@ -14,6 +14,14 @@
 nextcloud_name: nextcloud
 
 ################################
+# Settings
+################################
+
+nextcloud_data_directory: "/var/www/html/data"
+nextcloud_php_memory_limit: "512M"
+nextcloud_php_upload_limit: "512M"
+
+################################
 # Paths
 ################################
 
@@ -29,9 +37,9 @@ nextcloud_paths_folders_list:
 nextcloud_web_subdomain: "{{ nextcloud_name }}"
 nextcloud_web_domain: "{{ user.domain }}"
 nextcloud_web_port: "80"
-nextcloud_web_url: "{{ 'https://' + nextcloud_web_subdomain + '.' + nextcloud_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + nextcloud_web_port }}"
+nextcloud_web_url: "{{ 'https://' + (nextcloud_web_subdomain + '.' + nextcloud_web_domain
+                    if (nextcloud_web_subdomain | length > 0)
+                    else nextcloud_web_domain) }}"
 
 ################################
 # DNS
@@ -45,9 +53,13 @@ nextcloud_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-nextcloud_traefik_middleware: "{{ traefik_default_middleware }},nextcloud-caldav"
+nextcloud_traefik_sso_middleware: ""
+nextcloud_traefik_middleware_default: "{{ traefik_default_middleware }}"
+nextcloud_traefik_middleware_custom: ""
 nextcloud_traefik_certresolver: "{{ traefik_default_certresolver }}"
 nextcloud_traefik_enabled: true
+nextcloud_traefik_api_enabled: false
+nextcloud_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -62,17 +74,28 @@ nextcloud_docker_image_tag: "latest"
 nextcloud_docker_image: "nextcloud:{{ nextcloud_docker_image_tag }}"
 
 # Ports
-nextcloud_docker_ports_defaults:
-  - "{{ nextcloud_web_port }}"
+nextcloud_docker_ports_defaults: []
 nextcloud_docker_ports_custom: []
 nextcloud_docker_ports: "{{ nextcloud_docker_ports_defaults
-                            + nextcloud_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + nextcloud_docker_ports_custom }}"
+                            + nextcloud_docker_ports_custom }}"
 
 # Envs
 nextcloud_docker_envs_default:
   TZ: "{{ tz }}"
+  NEXTCLOUD_ADMIN_USER: "{{ user.name }}"
+  NEXTCLOUD_ADMIN_PASSWORD: "{{ user.pass }}"
+  NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_web_subdomain + '.' + nextcloud_web_domain }}"
+  NEXTCLOUD_DATA_DIR: "{{ nextcloud_data_directory }}"
+  MYSQL_DATABASE: "nextcloud"
+  MYSQL_USER: "root"
+  MYSQL_PASSWORD: "{{ mariadb_docker_env_password }}"
+  MYSQL_HOST: "mariadb"
+  OVERWRITEHOST: "{{ nextcloud_web_subdomain + '.' + nextcloud_web_domain }}"
+  OVERWRITEPROTOCOL: "https"
+  OVERWRITECLIURL: "https://{{ nextcloud_web_subdomain + '.' + nextcloud_web_domain }}"
+  PHP_MEMORY_LIMIT: "{{ nextcloud_php_memory_limit }}"
+  PHP_UPLOAD_LIMIT: "{{ nextcloud_php_upload_limit }}"
+  TRUSTED_PROXIES: "172.19.0.0/16"
 nextcloud_docker_envs_custom: {}
 nextcloud_docker_envs: "{{ nextcloud_docker_envs_default
                            | combine(nextcloud_docker_envs_custom) }}"
@@ -86,11 +109,9 @@ nextcloud_docker_commands: "{{ nextcloud_docker_commands_default
 # Volumes
 nextcloud_docker_volumes_default:
   - "{{ nextcloud_paths_location }}:/var/www/html"
-  - "/mnt:/mnt"
 nextcloud_docker_volumes_custom: []
 nextcloud_docker_volumes: "{{ nextcloud_docker_volumes_default
-                              + nextcloud_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + nextcloud_docker_volumes_custom }}"
 
 # Devices
 nextcloud_docker_devices_default: []
@@ -99,17 +120,16 @@ nextcloud_docker_devices: "{{ nextcloud_docker_devices_default
                               + nextcloud_docker_devices_custom }}"
 
 # Hosts
-nextcloud_docker_hosts_default: []
-nextcloud_docker_hosts_custom: []
+nextcloud_docker_hosts_default: {}
+nextcloud_docker_hosts_custom: {}
 nextcloud_docker_hosts: "{{ docker_hosts_common
                             | combine(nextcloud_docker_hosts_default)
                             | combine(nextcloud_docker_hosts_custom) }}"
 
 # Labels
 nextcloud_docker_labels_default:
-  traefik.http.middlewares.nextcloud-caldav.redirectregex.permanent: "true"
-  traefik.http.middlewares.nextcloud-caldav.redirectregex.regex: "^https://(.*)/.well-known/(card|cal)dav"
-  traefik.http.middlewares.nextcloud-caldav.redirectregex.replacement: "https://$${1}/remote.php/dav/"
+  traefik.http.middlewares.nextcloud-caldav.replacepathregex.regex: "^/.well-known/ca(l|rd)dav"
+  traefik.http.middlewares.nextcloud-caldav.replacepathregex.replacement: "/remote.php/dav/"
 nextcloud_docker_labels_custom: {}
 nextcloud_docker_labels: "{{ docker_labels_common
                              | combine(nextcloud_docker_labels_default)
@@ -146,3 +166,8 @@ nextcloud_docker_state: started
 
 # User
 nextcloud_docker_user: "{{ uid }}:{{ gid }}"
+
+# Dependencies
+nextcloud_depends_on: "mariadb"
+nextcloud_depends_on_delay: "0"
+nextcloud_depends_on_healthchecks: "false"

@@ -29,9 +29,9 @@ goaccess_paths_folders_list:
 goaccess_web_subdomain: "{{ goaccess_name }}"
 goaccess_web_domain: "{{ user.domain }}"
 goaccess_web_port: "7889"
-goaccess_web_url: "{{ 'https://' + goaccess_web_subdomain + '.' + goaccess_web_domain
-                   if (reverse_proxy_is_enabled)
-                   else 'http://localhost:' + goaccess_web_port }}"
+goaccess_web_url: "{{ 'https://' + (goaccess_web_subdomain + '.' + goaccess_web_domain
+                   if (goaccess_web_subdomain | length > 0)
+                   else goaccess_web_domain) }}"
 
 ################################
 # DNS
@@ -46,11 +46,12 @@ goaccess_dns_proxy: "{{ dns.proxied }}"
 ################################
 
 goaccess_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-goaccess_traefik_middleware: "{{ traefik_default_middleware + ',' + goaccess_traefik_sso_middleware
-                              if (goaccess_traefik_sso_middleware | length > 0)
-                              else traefik_default_middleware }}"
+goaccess_traefik_middleware_default: "{{ traefik_default_middleware }}"
+goaccess_traefik_middleware_custom: ""
 goaccess_traefik_certresolver: "{{ traefik_default_certresolver }}"
 goaccess_traefik_enabled: true
+goaccess_traefik_api_enabled: false
+goaccess_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -65,13 +66,10 @@ goaccess_docker_image_tag: "latest"
 goaccess_docker_image: "gregyankovoy/goaccess:{{ goaccess_docker_image_tag }}"
 
 # Ports
-goaccess_docker_ports_defaults:
-  - "{{ goaccess_web_port }}"
+goaccess_docker_ports_defaults: []
 goaccess_docker_ports_custom: []
 goaccess_docker_ports: "{{ goaccess_docker_ports_defaults
-                           + goaccess_docker_ports_custom
-                        if (not reverse_proxy_is_enabled)
-                        else [] + goaccess_docker_ports_custom }}"
+                           + goaccess_docker_ports_custom }}"
 
 # Envs
 goaccess_docker_envs_default:
@@ -94,8 +92,7 @@ goaccess_docker_volumes_default:
   - "/opt/traefik:/opt/log"
 goaccess_docker_volumes_custom: []
 goaccess_docker_volumes: "{{ goaccess_docker_volumes_default
-                             + goaccess_docker_volumes_custom
-                             + docker_volumes_downloads_common }}"
+                             + goaccess_docker_volumes_custom }}"
 
 # Devices
 goaccess_docker_devices_default: []
@@ -104,8 +101,8 @@ goaccess_docker_devices: "{{ goaccess_docker_devices_default
                              + goaccess_docker_devices_custom }}"
 
 # Hosts
-goaccess_docker_hosts_default: []
-goaccess_docker_hosts_custom: []
+goaccess_docker_hosts_default: {}
+goaccess_docker_hosts_custom: {}
 goaccess_docker_hosts: "{{ docker_hosts_common
                            | combine(goaccess_docker_hosts_default)
                            | combine(goaccess_docker_hosts_custom) }}"
@@ -146,8 +143,5 @@ goaccess_docker_restart_policy: unless-stopped
 # State
 goaccess_docker_state: started
 
-# Stop Timeout
-goaccess_docker_stop_timeout: 10
-
 # Force Kill
-goaccess__docker_force_kill: true
+goaccess_docker_force_kill: true

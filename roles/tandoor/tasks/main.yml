@@ -1,0 +1,44 @@
+#########################################################################
+# Title:            Sandbox: Tandoor                                    #
+# Author(s):        owine                                               #
+# URL:              https://github.com/saltyorg/Sandbox                 #
+# --                                                                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+- name: "Save Tandoor Saltbox facts"
+  saltbox_facts:
+    role: "tandoor"
+    instance: "tandoor"
+    keys:
+      secret_key: "{{ tandoor.secret_key
+                   if tandoor is defined and tandoor.secret_key is defined and tandoor.secret_key is not none and tandoor.secret_key | length > 0
+                   else lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits'], length=50) }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+  register: tandoor_saltbox_facts
+
+- name: Remove legacy setting
+  ansible.builtin.shell: "yyq -i 'del(.tandoor)' {{ playbook_dir }}/settings.yml"
+  when: tandoor is defined
+
+- name: PostgreSQL Role
+  ansible.builtin.include_role:
+    name: postgres
+
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('vars', role_name + '_dns_record') }}"
+    dns_zone: "{{ lookup('vars', role_name + '_dns_zone') }}"
+    dns_proxy: "{{ lookup('vars', role_name + '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Create directories
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

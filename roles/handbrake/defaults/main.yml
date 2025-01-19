@@ -31,9 +31,9 @@ handbrake_paths_folders_list:
 handbrake_web_subdomain: "{{ handbrake_name }}"
 handbrake_web_domain: "{{ user.domain }}"
 handbrake_web_port: "5800"
-handbrake_web_url: "{{ 'https://' + handbrake_web_subdomain + '.' + handbrake_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + handbrake_web_port }}"
+handbrake_web_url: "{{ 'https://' + (handbrake_web_subdomain + '.' + handbrake_web_domain
+                    if (handbrake_web_subdomain | length > 0)
+                    else handbrake_web_domain) }}"
 
 ################################
 # DNS
@@ -47,9 +47,13 @@ handbrake_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-handbrake_traefik_middleware: "{{ traefik_default_middleware }}"
+handbrake_traefik_sso_middleware: ""
+handbrake_traefik_middleware_default: "{{ traefik_default_middleware }}"
+handbrake_traefik_middleware_custom: ""
 handbrake_traefik_certresolver: "{{ traefik_default_certresolver }}"
 handbrake_traefik_enabled: true
+handbrake_traefik_api_enabled: false
+handbrake_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -64,13 +68,10 @@ handbrake_docker_image_tag: "latest"
 handbrake_docker_image: "jlesage/handbrake:{{ handbrake_docker_image_tag }}"
 
 # Ports
-handbrake_docker_ports_defaults:
-  - "{{ handbrake_web_port }}"
+handbrake_docker_ports_defaults: []
 handbrake_docker_ports_custom: []
 handbrake_docker_ports: "{{ handbrake_docker_ports_defaults
-                            + handbrake_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + handbrake_docker_ports_custom }}"
+                            + handbrake_docker_ports_custom }}"
 
 # Envs
 handbrake_docker_envs_default:
@@ -79,7 +80,7 @@ handbrake_docker_envs_default:
   TZ: "{{ tz }}"
   CLEAN_TMP_DIR: "1"
   ENABLE_CJK_FONT: "1"
-  VNC_PASSWORD: "{{ handbrake.handbrake_pass|default('saltbox',true) }}"
+  VNC_PASSWORD: "{{ handbrake.handbrake_pass | default('saltbox', true) }}"
 handbrake_docker_envs_custom: {}
 handbrake_docker_envs: "{{ handbrake_docker_envs_default
                            | combine(handbrake_docker_envs_custom) }}"
@@ -98,21 +99,17 @@ handbrake_docker_volumes_default:
   - "/mnt/local/downloads/handbrake/output:/output:rw"
 handbrake_docker_volumes_custom: []
 handbrake_docker_volumes: "{{ handbrake_docker_volumes_default
-                              + handbrake_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + handbrake_docker_volumes_custom }}"
 
 # Devices
-handbrake_docker_devices_default:
-  - "/dev/dri:/dev/dri"
+handbrake_docker_devices_default: []
 handbrake_docker_devices_custom: []
 handbrake_docker_devices: "{{ handbrake_docker_devices_default
-                              + handbrake_docker_devices_custom
-                           if (gpu.intel and dev_dri.stat.exists)
-                           else [] + handbrake_docker_devices_custom }}"
+                              + handbrake_docker_devices_custom }}"
 
 # Hosts
-handbrake_docker_hosts_default: []
-handbrake_docker_hosts_custom: []
+handbrake_docker_hosts_default: {}
+handbrake_docker_hosts_custom: {}
 handbrake_docker_hosts: "{{ docker_hosts_common
                             | combine(handbrake_docker_hosts_default)
                             | combine(handbrake_docker_hosts_custom) }}"

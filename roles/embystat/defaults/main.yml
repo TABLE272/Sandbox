@@ -30,9 +30,9 @@ embystat_paths_folders_list:
 embystat_web_subdomain: "{{ embystat_name }}"
 embystat_web_domain: "{{ user.domain }}"
 embystat_web_port: "6555"
-embystat_web_url: "{{ 'https://' + embystat_web_subdomain + '.' + embystat_web_domain
-                   if (reverse_proxy_is_enabled)
-                   else 'http://localhost:' + embystat_web_port }}"
+embystat_web_url: "{{ 'https://' + (embystat_web_subdomain + '.' + embystat_web_domain
+                   if (embystat_web_subdomain | length > 0)
+                   else embystat_web_domain) }}"
 
 ################################
 # DNS
@@ -46,9 +46,13 @@ embystat_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-embystat_traefik_middleware: "{{ traefik_default_middleware }}"
+embystat_traefik_sso_middleware: ""
+embystat_traefik_middleware_default: "{{ traefik_default_middleware }}"
+embystat_traefik_middleware_custom: ""
 embystat_traefik_certresolver: "{{ traefik_default_certresolver }}"
 embystat_traefik_enabled: true
+embystat_traefik_api_enabled: false
+embystat_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -63,13 +67,10 @@ embystat_docker_image_tag: "beta-linux-x64"
 embystat_docker_image: "uping/embystat:{{ embystat_docker_image_tag }}"
 
 # Ports
-embystat_docker_ports_defaults:
-  - "{{ embystat_web_port }}"
+embystat_docker_ports_defaults: []
 embystat_docker_ports_custom: []
 embystat_docker_ports: "{{ embystat_docker_ports_defaults
-                           + embystat_docker_ports_custom
-                        if (not reverse_proxy_is_enabled)
-                        else [] + embystat_docker_ports_custom }}"
+                           + embystat_docker_ports_custom }}"
 
 # Envs
 embystat_docker_envs_default: {}
@@ -88,8 +89,7 @@ embystat_docker_volumes_default:
   - "{{ embystat_paths_location }}/config:/app/data"
 embystat_docker_volumes_custom: []
 embystat_docker_volumes: "{{ embystat_docker_volumes_default
-                             + embystat_docker_volumes_custom
-                             + docker_volumes_downloads_common }}"
+                             + embystat_docker_volumes_custom }}"
 
 # Devices
 embystat_docker_devices_default: []
@@ -98,8 +98,8 @@ embystat_docker_devices: "{{ embystat_docker_devices_default
                              + embystat_docker_devices_custom }}"
 
 # Hosts
-embystat_docker_hosts_default: []
-embystat_docker_hosts_custom: []
+embystat_docker_hosts_default: {}
+embystat_docker_hosts_custom: {}
 embystat_docker_hosts: "{{ docker_hosts_common
                            | combine(embystat_docker_hosts_default)
                            | combine(embystat_docker_hosts_custom) }}"

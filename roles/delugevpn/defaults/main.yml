@@ -14,6 +14,15 @@
 delugevpn_name: delugevpn
 
 ################################
+# Settings
+################################
+
+delugevpn_log_level_daemon: info
+delugevpn_log_level_web: info
+delugevpn_name_servers: "84.200.69.80,1.1.1.1,84.200.70.40,1.0.0.1"
+delugevpn_lan_network: "172.19.0.0/16"
+
+################################
 # Paths
 ################################
 
@@ -22,11 +31,11 @@ delugevpn_paths_location: "{{ server_appdata_path }}/{{ delugevpn_paths_folder }
 delugevpn_paths_folders_list:
   - "{{ delugevpn_paths_location }}"
   - "{{ delugevpn_paths_location }}/wireguard"
-  - "{{ downloads.torrents }}"
-  - "{{ downloads.torrents }}/deluge"
-  - "{{ downloads.torrents }}/deluge/completed"
-  - "{{ downloads.torrents }}/deluge/incoming"
-  - "{{ downloads.torrents }}/deluge/watched"
+  - "{{ downloads_torrents_path }}"
+  - "{{ downloads_torrents_path }}/delugevpn"
+  - "{{ downloads_torrents_path }}/delugevpn/completed"
+  - "{{ downloads_torrents_path }}/delugevpn/incoming"
+  - "{{ downloads_torrents_path }}/delugevpn/watched"
 
 ################################
 # Web
@@ -35,9 +44,9 @@ delugevpn_paths_folders_list:
 delugevpn_web_subdomain: "{{ delugevpn_name }}"
 delugevpn_web_domain: "{{ user.domain }}"
 delugevpn_web_port: "8112"
-delugevpn_web_url: "{{ 'https://' + delugevpn_web_subdomain + '.' + delugevpn_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + delugevpn_web_port }}"
+delugevpn_web_url: "{{ 'https://' + (delugevpn_web_subdomain + '.' + delugevpn_web_domain
+                    if (delugevpn_web_subdomain | length > 0)
+                    else delugevpn_web_domain) }}"
 
 ################################
 # DNS
@@ -51,18 +60,13 @@ delugevpn_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-delugevpn_traefik_middleware: "{{ traefik_default_middleware }}"
+delugevpn_traefik_sso_middleware: ""
+delugevpn_traefik_middleware_default: "{{ traefik_default_middleware }}"
+delugevpn_traefik_middleware_custom: ""
 delugevpn_traefik_certresolver: "{{ traefik_default_certresolver }}"
 delugevpn_traefik_enabled: true
-
-################################
-# Settings
-################################
-
-delugevpn_log_level_daemon: info
-delugevpn_log_level_web: info
-delugevpn_name_servers: "209.222.18.222,84.200.69.80,37.235.1.174,1.1.1.1,209.222.18.218,37.235.1.177,84.200.70.40,1.0.0.1"
-delugevpn_lan_network: "172.19.0.0/16"
+delugevpn_traefik_api_enabled: false
+delugevpn_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -78,16 +82,10 @@ delugevpn_docker_image: "binhex/arch-delugevpn:{{ delugevpn_docker_image_tag }}"
 
 # Ports
 delugevpn_docker_ports_defaults:
-  - "{{ delugevpn_web_port }}"
-delugevpn_docker_ports_torrents:
   - "58112:58112"
   - "58846:58846"
 delugevpn_docker_ports_custom: []
 delugevpn_docker_ports: "{{ delugevpn_docker_ports_defaults
-                            + delugevpn_docker_ports_torrents
-                            + delugevpn_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + delugevpn_docker_ports_torrents
                             + delugevpn_docker_ports_custom }}"
 
 # Envs
@@ -96,10 +94,10 @@ delugevpn_docker_envs_default:
   PGID: "{{ gid }}"
   TZ: "{{ tz }}"
   VPN_ENABLED: "yes"
-  VPN_USER: "{{ delugevpn.vpn_user|default('username',true) }}"
-  VPN_PASS: "{{ delugevpn.vpn_pass|default('password',true) }}"
-  VPN_PROV: "{{ delugevpn.vpn_prov|default('pia',true) }}"
-  VPN_CLIENT: "{{ delugevpn.vpn_client|default('wireguard',true) }}"
+  VPN_USER: "{{ delugevpn.vpn_user | default('username', true) }}"
+  VPN_PASS: "{{ delugevpn.vpn_pass | default('password', true) }}"
+  VPN_PROV: "{{ delugevpn.vpn_prov | default('pia', true) }}"
+  VPN_CLIENT: "{{ delugevpn.vpn_client | default('wireguard', true) }}"
   STRICT_PORT_FORWARD: "yes"
   ENABLE_PRIVOXY: "no"
   LAN_NETWORK: "{{ delugevpn_lan_network }}"
@@ -121,12 +119,11 @@ delugevpn_docker_commands: "{{ delugevpn_docker_commands_default
 # Volumes
 delugevpn_docker_volumes_default:
   - "{{ delugevpn_paths_location }}:/config"
+  - "/etc/localtime:/etc/localtime:ro"
   - "/opt/scripts:/scripts"
-  - "/mnt:/mnt"
 delugevpn_docker_volumes_custom: []
 delugevpn_docker_volumes: "{{ delugevpn_docker_volumes_default
-                              + delugevpn_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + delugevpn_docker_volumes_custom }}"
 
 # Devices
 delugevpn_docker_devices_default: []
@@ -135,8 +132,8 @@ delugevpn_docker_devices: "{{ delugevpn_docker_devices_default
                               + delugevpn_docker_devices_custom }}"
 
 # Hosts
-delugevpn_docker_hosts_default: []
-delugevpn_docker_hosts_custom: []
+delugevpn_docker_hosts_default: {}
+delugevpn_docker_hosts_custom: {}
 delugevpn_docker_hosts: "{{ docker_hosts_common
                             | combine(delugevpn_docker_hosts_default)
                             | combine(delugevpn_docker_hosts_custom) }}"
@@ -160,8 +157,7 @@ delugevpn_docker_networks: "{{ docker_networks_common
                                + delugevpn_docker_networks_custom }}"
 
 # Capabilities
-delugevpn_docker_capabilities_default:
-  - NET_ADMIN
+delugevpn_docker_capabilities_default: []
 delugevpn_docker_capabilities_custom: []
 delugevpn_docker_capabilities: "{{ delugevpn_docker_capabilities_default
                                    + delugevpn_docker_capabilities_custom }}"
@@ -182,5 +178,5 @@ delugevpn_docker_state: started
 delugevpn_docker_sysctls:
   net.ipv4.conf.all.src_valid_mark: "1"
 
-# Privledged
+# Privileged
 delugevpn_docker_privileged: "yes"

@@ -1,0 +1,49 @@
+#########################################################################
+# Title:            Sandbox: Photoprism                                 #
+# Author(s):        Raneydazed                                          #
+# URL:              https://github.com/saltyorg/Sandbox                 #
+# --                                                                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+
+- name: MariaDB Role
+  ansible.builtin.include_role:
+    name: mariadb
+
+- name: MariaDB | Create photoprism database
+  community.mysql.mysql_db:
+    name: "photoprisms"
+    login_host: "mariadb"
+    login_user: "root"
+    login_password: "{{ mariadb_docker_env_password }}"
+    state: present
+  ignore_errors: true
+
+- name: Permissions | Delete photoprism group
+  ansible.builtin.group:
+    name: photoprism
+    state: absent
+    gid: 1500
+  ignore_errors: true
+
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('vars', role_name + '_dns_record') }}"
+    dns_zone: "{{ lookup('vars', role_name + '_dns_zone') }}"
+    dns_proxy: "{{ lookup('vars', role_name + '_dns_proxy') }}"
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Create directories
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/directories/create_directories.yml"
+
+- name: Docker Devices Task
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/set_docker_devices_variable.yml"
+  when: gpu.intel
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

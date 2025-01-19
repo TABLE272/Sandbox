@@ -30,9 +30,9 @@ kitana_paths_config_location: "{{ kitana_paths_location }}/config.yml"
 kitana_web_subdomain: "{{ kitana_name }}"
 kitana_web_domain: "{{ user.domain }}"
 kitana_web_port: "31337"
-kitana_web_url: "{{ 'https://' + kitana_web_subdomain + '.' + kitana_web_domain
-                 if (reverse_proxy_is_enabled)
-                 else 'http://localhost:' + kitana_web_port }}"
+kitana_web_url: "{{ 'https://' + (kitana_web_subdomain + '.' + kitana_web_domain
+                 if (kitana_web_subdomain | length > 0)
+                 else kitana_web_domain) }}"
 
 ################################
 # DNS
@@ -46,9 +46,13 @@ kitana_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-kitana_traefik_middleware: "{{ traefik_default_middleware }}"
+kitana_traefik_sso_middleware: ""
+kitana_traefik_middleware_default: "{{ traefik_default_middleware }}"
+kitana_traefik_middleware_custom: ""
 kitana_traefik_certresolver: "{{ traefik_default_certresolver }}"
 kitana_traefik_enabled: true
+kitana_traefik_api_enabled: false
+kitana_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -63,13 +67,10 @@ kitana_docker_image_tag: "latest"
 kitana_docker_image: "pannal/kitana:{{ kitana_docker_image_tag }}"
 
 # Ports
-kitana_docker_ports_defaults:
-  - "{{ kitana_web_port }}"
+kitana_docker_ports_defaults: []
 kitana_docker_ports_custom: []
 kitana_docker_ports: "{{ kitana_docker_ports_defaults
-                         + kitana_docker_ports_custom
-                      if (not reverse_proxy_is_enabled)
-                      else [] + kitana_docker_ports_custom }}"
+                         + kitana_docker_ports_custom }}"
 
 # Envs
 kitana_docker_envs_default:
@@ -90,8 +91,7 @@ kitana_docker_volumes_default:
   - "{{ kitana_paths_location }}:/app/data"
 kitana_docker_volumes_custom: []
 kitana_docker_volumes: "{{ kitana_docker_volumes_default
-                           + kitana_docker_volumes_custom
-                           + docker_volumes_downloads_common }}"
+                           + kitana_docker_volumes_custom }}"
 
 # Devices
 kitana_docker_devices_default: []
@@ -100,8 +100,8 @@ kitana_docker_devices: "{{ kitana_docker_devices_default
                            + kitana_docker_devices_custom }}"
 
 # Hosts
-kitana_docker_hosts_default: []
-kitana_docker_hosts_custom: []
+kitana_docker_hosts_default: {}
+kitana_docker_hosts_custom: {}
 kitana_docker_hosts: "{{ docker_hosts_common
                          | combine(kitana_docker_hosts_default)
                          | combine(kitana_docker_hosts_custom) }}"

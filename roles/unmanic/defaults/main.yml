@@ -31,9 +31,9 @@ unmanic_paths_folders_list:
 unmanic_web_subdomain: "{{ unmanic_name }}"
 unmanic_web_domain: "{{ user.domain }}"
 unmanic_web_port: "8888"
-unmanic_web_url: "{{ 'https://' + unmanic_web_subdomain + '.' + unmanic_web_domain
-                  if (reverse_proxy_is_enabled)
-                  else 'http://localhost:' + unmanic_web_port }}"
+unmanic_web_url: "{{ 'https://' + (unmanic_web_subdomain + '.' + unmanic_web_domain
+                  if (unmanic_web_subdomain | length > 0)
+                  else unmanic_web_domain) }}"
 
 ################################
 # DNS
@@ -48,11 +48,12 @@ unmanic_dns_proxy: "{{ dns.proxied }}"
 ################################
 
 unmanic_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-unmanic_traefik_middleware: "{{ traefik_default_middleware + ',' + unmanic_traefik_sso_middleware
-                             if (unmanic_traefik_sso_middleware | length > 0)
-                             else traefik_default_middleware }}"
+unmanic_traefik_middleware_default: "{{ traefik_default_middleware }}"
+unmanic_traefik_middleware_custom: ""
 unmanic_traefik_certresolver: "{{ traefik_default_certresolver }}"
 unmanic_traefik_enabled: true
+unmanic_traefik_api_enabled: false
+unmanic_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -67,13 +68,10 @@ unmanic_docker_image_tag: "latest"
 unmanic_docker_image: "josh5/unmanic:{{ unmanic_docker_image_tag }}"
 
 # Ports
-unmanic_docker_ports_defaults:
-  - "{{ unmanic_web_port }}"
+unmanic_docker_ports_defaults: []
 unmanic_docker_ports_custom: []
 unmanic_docker_ports: "{{ unmanic_docker_ports_defaults
-                          + unmanic_docker_ports_custom
-                       if (not reverse_proxy_is_enabled)
-                       else [] + unmanic_docker_ports_custom }}"
+                          + unmanic_docker_ports_custom }}"
 
 # Envs
 unmanic_docker_envs_default:
@@ -95,11 +93,9 @@ unmanic_docker_volumes_default:
   - "{{ unmanic_paths_location }}:/config"
   - "{{ unmanic_paths_transcodes_location }}:/tmp/unmanic"
   - "/mnt/unionfs/Media:/library"
-  - "/mnt:/mnt"
 unmanic_docker_volumes_custom: []
 unmanic_docker_volumes: "{{ unmanic_docker_volumes_default
-                            + unmanic_docker_volumes_custom
-                            + docker_volumes_downloads_common }}"
+                            + unmanic_docker_volumes_custom }}"
 
 # Devices
 unmanic_docker_devices_default: []
@@ -108,8 +104,8 @@ unmanic_docker_devices: "{{ unmanic_docker_devices_default
                             + unmanic_docker_devices_custom }}"
 
 # Hosts
-unmanic_docker_hosts_default: []
-unmanic_docker_hosts_custom: []
+unmanic_docker_hosts_default: {}
+unmanic_docker_hosts_custom: {}
 unmanic_docker_hosts: "{{ docker_hosts_common
                           | combine(unmanic_docker_hosts_default)
                           | combine(unmanic_docker_hosts_custom) }}"

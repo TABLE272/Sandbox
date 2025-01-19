@@ -29,9 +29,9 @@ xteve_paths_folders_list:
 xteve_web_subdomain: "{{ xteve_name }}"
 xteve_web_domain: "{{ user.domain }}"
 xteve_web_port: "34400"
-xteve_web_url: "{{ 'https://' + xteve_web_subdomain + '.' + xteve_web_domain
-                if (reverse_proxy_is_enabled)
-                else 'http://localhost:' + xteve_web_port }}"
+xteve_web_url: "{{ 'https://' + (xteve_web_subdomain + '.' + xteve_web_domain
+                if (xteve_web_subdomain | length > 0)
+                else xteve_web_domain) }}"
 
 ################################
 # DNS
@@ -46,11 +46,12 @@ xteve_dns_proxy: "{{ dns.proxied }}"
 ################################
 
 xteve_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-xteve_traefik_middleware: "{{ traefik_default_middleware + ',' + xteve_traefik_sso_middleware
-                           if (xteve_traefik_sso_middleware | length > 0)
-                           else traefik_default_middleware }}"
+xteve_traefik_middleware_default: "{{ traefik_default_middleware }}"
+xteve_traefik_middleware_custom: ""
 xteve_traefik_certresolver: "{{ traefik_default_certresolver }}"
 xteve_traefik_enabled: true
+xteve_traefik_api_enabled: true
+xteve_traefik_api_endpoint: "PathPrefix(`/data_images`) || PathPrefix(`/api`)"
 
 ################################
 # Docker
@@ -65,13 +66,10 @@ xteve_docker_image_tag: "latest"
 xteve_docker_image: "dnsforge/xteve:{{ xteve_docker_image_tag }}"
 
 # Ports
-xteve_docker_ports_defaults:
-  - "{{ xteve_web_port }}"
+xteve_docker_ports_defaults: []
 xteve_docker_ports_custom: []
 xteve_docker_ports: "{{ xteve_docker_ports_defaults
-                        + xteve_docker_ports_custom
-                     if (not reverse_proxy_is_enabled)
-                     else [] + xteve_docker_ports_custom }}"
+                        + xteve_docker_ports_custom }}"
 
 # Envs
 xteve_docker_envs_default:
@@ -97,8 +95,7 @@ xteve_docker_volumes_default:
   - "{{ xteve_paths_location }}/app/guide2go:/home/xteve/guide2go/conf:rw"
 xteve_docker_volumes_custom: []
 xteve_docker_volumes: "{{ xteve_docker_volumes_default
-                          + xteve_docker_volumes_custom
-                          + docker_volumes_downloads_common }}"
+                          + xteve_docker_volumes_custom }}"
 
 # Devices
 xteve_docker_devices_default: []
@@ -107,8 +104,8 @@ xteve_docker_devices: "{{ xteve_docker_devices_default
                           + xteve_docker_devices_custom }}"
 
 # Hosts
-xteve_docker_hosts_default: []
-xteve_docker_hosts_custom: []
+xteve_docker_hosts_default: {}
+xteve_docker_hosts_custom: {}
 xteve_docker_hosts: "{{ docker_hosts_common
                         | combine(xteve_docker_hosts_default)
                         | combine(xteve_docker_hosts_custom) }}"

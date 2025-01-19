@@ -30,9 +30,9 @@ beets_paths_folders_list:
 beets_web_subdomain: "{{ beets_name }}"
 beets_web_domain: "{{ user.domain }}"
 beets_web_port: "8337"
-beets_web_url: "{{ 'https://' + beets_web_subdomain + '.' + beets_web_domain
-                if (reverse_proxy_is_enabled)
-                else 'http://localhost:' + beets_web_port }}"
+beets_web_url: "{{ 'https://' + (beets_web_subdomain + '.' + beets_web_domain
+                if (beets_web_subdomain | length > 0)
+                else beets_web_domain) }}"
 
 ################################
 # DNS
@@ -46,10 +46,11 @@ beets_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-beets_traefik_middleware: "{{ traefik_default_middleware }},beets-auth"
+beets_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+beets_traefik_middleware_default: "{{ traefik_default_middleware }}"
+beets_traefik_middleware_custom: ""
 beets_traefik_certresolver: "{{ traefik_default_certresolver }}"
 beets_traefik_enabled: true
-beets_auth: "/etc/traefik/auth"
 
 ################################
 # Docker
@@ -64,13 +65,10 @@ beets_docker_image_tag: "latest"
 beets_docker_image: "lscr.io/linuxserver/beets:{{ beets_docker_image_tag }}"
 
 # Ports
-beets_docker_ports_defaults:
-  - "{{ beets_web_port }}"
+beets_docker_ports_defaults: []
 beets_docker_ports_custom: []
 beets_docker_ports: "{{ beets_docker_ports_defaults
-                        + beets_docker_ports_custom
-                     if (not reverse_proxy_is_enabled)
-                     else [] + beets_docker_ports_custom }}"
+                        + beets_docker_ports_custom }}"
 
 # Envs
 beets_docker_envs_default:
@@ -91,12 +89,9 @@ beets_docker_commands: "{{ beets_docker_commands_default
 beets_docker_volumes_default:
   - "{{ beets_paths_location }}:/config"
   - "/mnt/unionfs/Media/Music:/music"
-  - "/mnt/local/downloads/music:/downloads"
-  - "/mnt:/mnt"
 beets_docker_volumes_custom: []
 beets_docker_volumes: "{{ beets_docker_volumes_default
-                          + beets_docker_volumes_custom
-                          + docker_volumes_downloads_common }}"
+                          + beets_docker_volumes_custom }}"
 
 # Devices
 beets_docker_devices_default: []
@@ -105,15 +100,14 @@ beets_docker_devices: "{{ beets_docker_devices_default
                           + beets_docker_devices_custom }}"
 
 # Hosts
-beets_docker_hosts_default: []
-beets_docker_hosts_custom: []
+beets_docker_hosts_default: {}
+beets_docker_hosts_custom: {}
 beets_docker_hosts: "{{ docker_hosts_common
                         | combine(beets_docker_hosts_default)
                         | combine(beets_docker_hosts_custom) }}"
 
 # Labels
-beets_docker_labels_default:
-  traefik.http.middlewares.beets-auth.basicauth.usersfile: "{{ beets_auth }}"
+beets_docker_labels_default: {}
 beets_docker_labels_custom: {}
 beets_docker_labels: "{{ docker_labels_common
                          | combine(beets_docker_labels_default)

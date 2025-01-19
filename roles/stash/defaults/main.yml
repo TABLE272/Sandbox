@@ -34,9 +34,9 @@ stash_paths_folders_list:
 stash_web_subdomain: "{{ stash_name }}"
 stash_web_domain: "{{ user.domain }}"
 stash_web_port: "9999"
-stash_web_url: "{{ 'https://' + stash_web_subdomain + '.' + stash_web_domain
-                if (reverse_proxy_is_enabled)
-                else 'http://localhost:' + stash_web_port }}"
+stash_web_url: "{{ 'https://' + (stash_web_subdomain + '.' + stash_web_domain
+                if (stash_web_subdomain | length > 0)
+                else stash_web_domain) }}"
 
 ################################
 # DNS
@@ -50,9 +50,13 @@ stash_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-stash_traefik_middleware: "{{ traefik_default_middleware }}"
+stash_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+stash_traefik_middleware_default: "{{ traefik_default_middleware }}"
+stash_traefik_middleware_custom: ""
 stash_traefik_certresolver: "{{ traefik_default_certresolver }}"
 stash_traefik_enabled: true
+stash_traefik_api_enabled: false
+stash_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -64,23 +68,19 @@ stash_docker_container: "{{ stash_name }}"
 # Image
 stash_docker_image_pull: true
 stash_docker_image_tag: "latest"
-stash_docker_image: "stashapp/stash:{{ stash_docker_image_tag }}"
+stash_docker_image: "ghcr.io/hotio/stash:{{ stash_docker_image_tag }}"
 
 # Ports
-stash_docker_ports_defaults:
-  - "{{ stash_web_port }}"
+stash_docker_ports_defaults: []
 stash_docker_ports_custom: []
 stash_docker_ports: "{{ stash_docker_ports_defaults
-                        + stash_docker_ports_custom
-                     if (not reverse_proxy_is_enabled)
-                     else [] + stash_docker_ports_custom }}"
+                        + stash_docker_ports_custom }}"
 
 # Envs
 stash_docker_envs_default:
-  - STASH_STASH: "/data/"
-  - STASH_GENERATED: "/generated/"
-  - STASH_METADATA: "/metadata/"
-  - STASH_CACHE: "/cache/"
+  - TZ: "{{ tz }}"
+  - PUID: "{{ uid }}"
+  - PGID: "{{ gid }}"
 stash_docker_envs_custom: {}
 stash_docker_envs: "{{ stash_docker_envs_default
                        | combine(stash_docker_envs_custom) }}"
@@ -93,16 +93,14 @@ stash_docker_commands: "{{ stash_docker_commands_default
 
 # Volumes
 stash_docker_volumes_default:
-  - "{{ stash_paths_location }}/config:/root/.stash"
+  - "{{ stash_paths_location }}/config:/config"
   - "{{ stash_paths_location }}/metadata:/metadata"
   - "{{ stash_paths_location }}/cache:/cache"
   - "{{ stash_paths_location }}/generated:/generated"
   - "/mnt/unionfs/Media/Adult:/data"
-  - "/mnt:/mnt"
 stash_docker_volumes_custom: []
 stash_docker_volumes: "{{ stash_docker_volumes_default
-                          + stash_docker_volumes_custom
-                          + docker_volumes_downloads_common }}"
+                          + stash_docker_volumes_custom }}"
 
 # Devices
 stash_docker_devices_default: []
@@ -111,8 +109,8 @@ stash_docker_devices: "{{ stash_docker_devices_default
                           + stash_docker_devices_custom }}"
 
 # Hosts
-stash_docker_hosts_default: []
-stash_docker_hosts_custom: []
+stash_docker_hosts_default: {}
+stash_docker_hosts_custom: {}
 stash_docker_hosts: "{{ docker_hosts_common
                         | combine(stash_docker_hosts_default)
                         | combine(stash_docker_hosts_custom) }}"

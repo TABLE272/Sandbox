@@ -34,9 +34,9 @@ adguardhome_paths_folders_list:
 adguardhome_web_subdomain: "{{ adguardhome_name }}"
 adguardhome_web_domain: "{{ user.domain }}"
 adguardhome_web_port: "3000"
-adguardhome_web_url: "{{ 'https://' + adguardhome_web_subdomain + '.' + adguardhome_web_domain
-                      if (reverse_proxy_is_enabled)
-                      else 'http://localhost:' + adguardhome_web_port }}"
+adguardhome_web_url: "{{ 'https://' + (adguardhome_web_subdomain + '.' + adguardhome_web_domain
+                      if (adguardhome_web_subdomain | length > 0)
+                      else adguardhome_web_domain) }}"
 
 ################################
 # DNS
@@ -51,13 +51,12 @@ adguardhome_dns_proxy: "{{ dns.proxied }}"
 ################################
 
 adguardhome_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-adguardhome_traefik_middleware: "{{ traefik_default_middleware + ',' + adguardhome_traefik_sso_middleware
-                                 if (adguardhome_traefik_sso_middleware | length > 0)
-                                 else traefik_default_middleware }}"
+adguardhome_traefik_middleware_default: "{{ traefik_default_middleware }}"
+adguardhome_traefik_middleware_custom: ""
 adguardhome_traefik_certresolver: "{{ traefik_default_certresolver }}"
 adguardhome_traefik_enabled: true
 adguardhome_traefik_api_enabled: true
-adguardhome_traefik_api_endpoint: "`/dns-query`"
+adguardhome_traefik_api_endpoint: "PathPrefix(`/dns-query`)"
 
 ################################
 # Docker
@@ -72,13 +71,10 @@ adguardhome_docker_image_tag: "latest"
 adguardhome_docker_image: "adguard/adguardhome:{{ adguardhome_docker_image_tag }}"
 
 # Ports
-adguardhome_docker_ports_defaults:
-  - "{{ adguardhome_web_port }}"
+adguardhome_docker_ports_defaults: []
 adguardhome_docker_ports_custom: []
 adguardhome_docker_ports: "{{ adguardhome_docker_ports_defaults
-                              + adguardhome_docker_ports_custom
-                           if (not reverse_proxy_is_enabled)
-                           else [] + adguardhome_docker_ports_custom }}"
+                              + adguardhome_docker_ports_custom }}"
 
 # Envs
 adguardhome_docker_envs_default:
@@ -109,8 +105,8 @@ adguardhome_docker_devices: "{{ adguardhome_docker_devices_default
                                 + adguardhome_docker_devices_custom }}"
 
 # Hosts
-adguardhome_docker_hosts_default: []
-adguardhome_docker_hosts_custom: []
+adguardhome_docker_hosts_default: {}
+adguardhome_docker_hosts_custom: {}
 adguardhome_docker_hosts: "{{ docker_hosts_common
                               | combine(adguardhome_docker_hosts_default)
                               | combine(adguardhome_docker_hosts_custom) }}"

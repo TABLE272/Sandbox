@@ -31,9 +31,9 @@ guacamole_paths_folders_list:
 guacamole_web_subdomain: "{{ guacamole_name }}"
 guacamole_web_domain: "{{ user.domain }}"
 guacamole_web_port: "8080"
-guacamole_web_url: "{{ 'https://' + guacamole_web_subdomain + '.' + guacamole_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + guacamole_web_port }}"
+guacamole_web_url: "{{ 'https://' + (guacamole_web_subdomain + '.' + guacamole_web_domain
+                    if (guacamole_web_subdomain | length > 0)
+                    else guacamole_web_domain) }}"
 
 ################################
 # DNS
@@ -47,9 +47,13 @@ guacamole_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-guacamole_traefik_middleware: "{{ traefik_default_middleware }}"
+guacamole_traefik_sso_middleware: ""
+guacamole_traefik_middleware_default: "{{ traefik_default_middleware }}"
+guacamole_traefik_middleware_custom: ""
 guacamole_traefik_certresolver: "{{ traefik_default_certresolver }}"
 guacamole_traefik_enabled: true
+guacamole_traefik_api_enabled: false
+guacamole_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -64,16 +68,15 @@ guacamole_docker_image_tag: "latest"
 guacamole_docker_image: "jasonbean/guacamole:{{ guacamole_docker_image_tag }}"
 
 # Ports
-guacamole_docker_ports_defaults:
-  - "{{ guacamole_web_port }}"
+guacamole_docker_ports_defaults: []
 guacamole_docker_ports_custom: []
 guacamole_docker_ports: "{{ guacamole_docker_ports_defaults
-                            + guacamole_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + guacamole_docker_ports_custom }}"
+                            + guacamole_docker_ports_custom }}"
 
 # Envs
 guacamole_docker_envs_default:
+  PUID: "{{ uid }}"
+  PGID: "{{ gid }}"
   OPT_MYSQL: "Y"
 guacamole_docker_envs_custom: {}
 guacamole_docker_envs: "{{ guacamole_docker_envs_default
@@ -90,8 +93,7 @@ guacamole_docker_volumes_default:
   - "{{ guacamole_paths_location }}/config:/config"
 guacamole_docker_volumes_custom: []
 guacamole_docker_volumes: "{{ guacamole_docker_volumes_default
-                              + guacamole_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + guacamole_docker_volumes_custom }}"
 
 # Devices
 guacamole_docker_devices_default: []
@@ -100,8 +102,8 @@ guacamole_docker_devices: "{{ guacamole_docker_devices_default
                               + guacamole_docker_devices_custom }}"
 
 # Hosts
-guacamole_docker_hosts_default: []
-guacamole_docker_hosts_custom: []
+guacamole_docker_hosts_default: {}
+guacamole_docker_hosts_custom: {}
 guacamole_docker_hosts: "{{ docker_hosts_common
                             | combine(guacamole_docker_hosts_default)
                             | combine(guacamole_docker_hosts_custom) }}"

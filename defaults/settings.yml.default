@@ -1,52 +1,87 @@
 ---
-alternatrrx:
-  roles: ["1080webdl", "1080remux"]
+a_train:
+  remotes: [""]
 delugevpn:
   vpn_endpoint: netherlands.ovpn
   vpn_pass: your_vpn_password
   vpn_prov: pia
   vpn_user: your_vpn_username
-  vpn_client: wireguard # 'wireguard' or 'openvpn'
+  vpn_client: wireguard
 doplarr:
   discord_token: your_discord_bot_token
   overseerr_url: "http://overseerr:5055"
-  overseerr_api: your_overseer_api_key
+  overseerr_api:
+  radarr_api:
+  radarr_url:
+  sonarr_api:
+  sonarr_url:
+  discord_max_results: 25
+  discord_role_id:
+  discord_requested_msg_style: ":plain"
+  sonarr_quality_profile:
+  radarr_quality_profile:
+  sonarr_language_profile:
+  overseer_default_id:
+  partial_seasons: "true"
+  log_level: ":info"
+foundry:
+  user: your_foundryvtt_username
+  pass: your_foundryvtt_password
+  app_key: your_foundryvtt_license
 goplaxt:
   trakt_id: ~
   trakt_secret: ~
 handbrake:
-  handbrake_pass: saltbox # must be less than eight characters
+  handbrake_pass: saltbox
+invoiceninja:
+  app_key: 'base64:O1S3kAJEDgo92gPkXtxfdCJpoGShgKloUSdcaHMXmoY='
+membarr:
+  discord_token: your_discord_bot_token
 moviematch:
   libraries: Movies
   plex_url: http://plex:32400
 notifiarr:
   api_key: "api-key-from-notifiarr.com"
-ombix:
-  roles: ["4k"]
-plex_meta_manager:
-  time: "03:00"
 qbit_manage:
-  qbt_run: "false" # Default is "false"
-  qbt_schedule: "30" # Default is "30"
-  qbt_config: "config.yml" # Default is "config.yml"
-  qbt_logfile: "activity.log" # Default is "activity.log"
-  qbt_cross_seed: "false" # Default is "false"
-  qbt_recheck: "false" # Default is "false"
-  qbt_cat_update: "false" # Default is "false"
-  qbt_tag_update: "false" # Default is "false"
-  qbt_rem_unregistered: "false" # Default is "false"
-  qbt_rem_orphaned: "false" # Default is "false"
-  qbt_tag_nohardlinks: "false" # Default is "false"
-  qbt_skip_recycle: "false" # Default is "false"
-  qbt_dry_run: "true" # Default is "false"
-  qbt_log_level: "INFO" # Default is "INFO"
-  qbt_divider: "=" # Default is "="
-  qbt_width: "100" # Default is "100"
+  qbt_run: "false"
+  qbt_schedule: "30"
+  qbt_config: "config.yml"
+  qbt_logfile: "activity.log"
+  qbt_cross_seed: "false"
+  qbt_recheck: "false"
+  qbt_cat_update: "false"
+  qbt_tag_update: "false"
+  qbt_rem_unregistered: "false"
+  qbt_rem_orphaned: "false"
+  qbt_tag_nohardlinks: "false"
+  qbt_skip_recycle: "false"
+  qbt_dry_run: "true"
+  qbt_log_level: "INFO"
+  qbt_divider: "="
+  qbt_width: "100"
   qbt_debug: "false"
   qbt_trace: "false"
-requestrrx:
-  roles: ["1080p", "4k"]
-rfloodx:
-  roles: [""]
-transmissionx:
-  roles: [""]
+qbittorrentvpn:
+  vpn_pass: your_vpn_password
+  vpn_prov: pia
+  vpn_user: your_vpn_username
+  vpn_client: wireguard
+recyclarr:
+  cron_schedule: "@daily"
+sarotate:
+  remotes: [""]
+  sa_path: "your_sa_folder_path"
+  sleeptime:
+  rc_port:
+  rc_user:
+  rc_pass:
+  apprise:
+tqm:
+  download_client: "qbt"
+transmissionvpn:
+  vpn_user:
+  vpn_pass:
+  vpn_prov:
+your_spotify:
+  public_key:
+  secret_key:

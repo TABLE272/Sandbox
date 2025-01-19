@@ -29,9 +29,9 @@ lazylibrarian_paths_folders_list:
 lazylibrarian_web_subdomain: "{{ lazylibrarian_name }}"
 lazylibrarian_web_domain: "{{ user.domain }}"
 lazylibrarian_web_port: "5299"
-lazylibrarian_web_url: "{{ 'https://' + lazylibrarian_web_subdomain + '.' + lazylibrarian_web_domain
-                        if (reverse_proxy_is_enabled)
-                        else 'http://localhost:' + lazylibrarian_web_port }}"
+lazylibrarian_web_url: "{{ 'https://' + (lazylibrarian_web_subdomain + '.' + lazylibrarian_web_domain
+                        if (lazylibrarian_web_subdomain | length > 0)
+                        else lazylibrarian_web_domain) }}"
 
 ################################
 # DNS
@@ -45,9 +45,13 @@ lazylibrarian_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-lazylibrarian_traefik_middleware: "{{ traefik_default_middleware }}"
+lazylibrarian_traefik_sso_middleware: ""
+lazylibrarian_traefik_middleware_default: "{{ traefik_default_middleware }}"
+lazylibrarian_traefik_middleware_custom: ""
 lazylibrarian_traefik_certresolver: "{{ traefik_default_certresolver }}"
 lazylibrarian_traefik_enabled: true
+lazylibrarian_traefik_api_enabled: false
+lazylibrarian_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -62,20 +66,17 @@ lazylibrarian_docker_image_tag: "latest"
 lazylibrarian_docker_image: "lscr.io/linuxserver/lazylibrarian:{{ lazylibrarian_docker_image_tag }}"
 
 # Ports
-lazylibrarian_docker_ports_defaults:
-  - "{{ lazylibrarian_web_port }}"
+lazylibrarian_docker_ports_defaults: []
 lazylibrarian_docker_ports_custom: []
 lazylibrarian_docker_ports: "{{ lazylibrarian_docker_ports_defaults
-                                + lazylibrarian_docker_ports_custom
-                             if (not reverse_proxy_is_enabled)
-                             else [] + lazylibrarian_docker_ports_custom }}"
+                                + lazylibrarian_docker_ports_custom }}"
 
 # Envs
 lazylibrarian_docker_envs_default:
   PUID: "{{ uid }}"
   PGID: "{{ gid }}"
   TZ: "{{ tz }}"
-  DOCKER_MODS: "lscr.io/linuxserver/calibre-web:calibre|lscr.io/linuxserver/mods:lazylibrarian-ffmpeg"
+  DOCKER_MODS: "linuxserver/mods:universal-calibre|linuxserver/mods:lazylibrarian-ffmpeg"
 lazylibrarian_docker_envs_custom: {}
 lazylibrarian_docker_envs: "{{ lazylibrarian_docker_envs_default
                                | combine(lazylibrarian_docker_envs_custom) }}"
@@ -89,11 +90,9 @@ lazylibrarian_docker_commands: "{{ lazylibrarian_docker_commands_default
 # Volumes
 lazylibrarian_docker_volumes_default:
   - "{{ lazylibrarian_paths_location }}:/config"
-  - "/mnt:/mnt"
 lazylibrarian_docker_volumes_custom: []
 lazylibrarian_docker_volumes: "{{ lazylibrarian_docker_volumes_default
-                                  + lazylibrarian_docker_volumes_custom
-                                  + docker_volumes_downloads_common }}"
+                                  + lazylibrarian_docker_volumes_custom }}"
 
 # Devices
 lazylibrarian_docker_devices_default: []
@@ -102,8 +101,8 @@ lazylibrarian_docker_devices: "{{ lazylibrarian_docker_devices_default
                                   + lazylibrarian_docker_devices_custom }}"
 
 # Hosts
-lazylibrarian_docker_hosts_default: []
-lazylibrarian_docker_hosts_custom: []
+lazylibrarian_docker_hosts_default: {}
+lazylibrarian_docker_hosts_custom: {}
 lazylibrarian_docker_hosts: "{{ docker_hosts_common
                                 | combine(lazylibrarian_docker_hosts_default)
                                 | combine(lazylibrarian_docker_hosts_custom) }}"

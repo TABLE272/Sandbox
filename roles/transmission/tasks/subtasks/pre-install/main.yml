@@ -7,9 +7,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
-- name: Pre-Install | Get next available port within the range of '51413-51433'
-  find_next_open_port:
+- name: Pre-Install | Get next available port within the range of '51413-51433' # noqa fqcn[action]
+  find_open_port:
     low_bound: 51413
     high_bound: 51433
+    protocol: both
   register: port_lookup_51413
   ignore_errors: true

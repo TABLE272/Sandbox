@@ -29,9 +29,9 @@ speedtest_paths_folders_list:
 speedtest_web_subdomain: "{{ speedtest_name }}"
 speedtest_web_domain: "{{ user.domain }}"
 speedtest_web_port: "80"
-speedtest_web_url: "{{ 'https://' + speedtest_web_subdomain + '.' + speedtest_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + speedtest_web_port }}"
+speedtest_web_url: "{{ 'https://' + (speedtest_web_subdomain + '.' + speedtest_web_domain
+                    if (speedtest_web_subdomain | length > 0)
+                    else speedtest_web_domain) }}"
 
 ################################
 # DNS
@@ -39,15 +39,28 @@ speedtest_web_url: "{{ 'https://' + speedtest_web_subdomain + '.' + speedtest_we
 
 speedtest_dns_record: "{{ speedtest_web_subdomain }}"
 speedtest_dns_zone: "{{ speedtest_web_domain }}"
-speedtest_dns_proxy: false # defeats the purpose if proxied
+speedtest_dns_proxy: false
 
 ################################
 # Traefik
 ################################
 
-speedtest_traefik_middleware: "{{ traefik_default_middleware }}"
+speedtest_traefik_sso_middleware: ""
+speedtest_traefik_middleware_default: "{{ traefik_default_middleware }}"
+speedtest_traefik_middleware_custom: ""
 speedtest_traefik_certresolver: "{{ traefik_default_certresolver }}"
 speedtest_traefik_enabled: true
+speedtest_traefik_api_enabled: false
+speedtest_traefik_api_endpoint: ""
+
+################################
+# THEME
+################################
+
+# Options can be found at https://github.com/themepark-dev/theme.park
+speedtest_themepark_enabled: false
+speedtest_themepark_theme: "{{ global_themepark_theme }}"
+speedtest_themepark_domain: "{{ global_themepark_domain }}"
 
 ################################
 # Docker
@@ -62,13 +75,10 @@ speedtest_docker_image_tag: "latest"
 speedtest_docker_image: "lscr.io/linuxserver/librespeed:{{ speedtest_docker_image_tag }}"
 
 # Ports
-speedtest_docker_ports_defaults:
-  - "{{ speedtest_web_port }}:{{ speedtest_web_port }}"
+speedtest_docker_ports_defaults: []
 speedtest_docker_ports_custom: []
 speedtest_docker_ports: "{{ speedtest_docker_ports_defaults
-                            + speedtest_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + speedtest_docker_ports_custom }}"
+                            + speedtest_docker_ports_custom }}"
 
 # Envs
 speedtest_docker_envs_default:
@@ -77,6 +87,9 @@ speedtest_docker_envs_default:
   TZ: "{{ tz }}"
   PASSWORD: "{{ user.pass }}"
   DB_TYPE: "sqlite"
+  DOCKER_MODS: "{{ 'ghcr.io/themepark-dev/theme.park:librespeed' if speedtest_themepark_enabled else omit }}"
+  TP_DOMAIN: "{{ lookup('vars', speedtest_name + '_themepark_domain', default=speedtest_themepark_domain) }}"
+  TP_THEME: "{{ lookup('vars', speedtest_name + '_themepark_theme', default=speedtest_themepark_theme) }}"
 speedtest_docker_envs_custom: {}
 speedtest_docker_envs: "{{ speedtest_docker_envs_default
                            | combine(speedtest_docker_envs_custom) }}"
@@ -92,8 +105,7 @@ speedtest_docker_volumes_default:
   - "{{ speedtest_paths_location }}:/config"
 speedtest_docker_volumes_custom: []
 speedtest_docker_volumes: "{{ speedtest_docker_volumes_default
-                              + speedtest_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + speedtest_docker_volumes_custom }}"
 
 # Devices
 speedtest_docker_devices_default: []
@@ -102,8 +114,8 @@ speedtest_docker_devices: "{{ speedtest_docker_devices_default
                               + speedtest_docker_devices_custom }}"
 
 # Hosts
-speedtest_docker_hosts_default: []
-speedtest_docker_hosts_custom: []
+speedtest_docker_hosts_default: {}
+speedtest_docker_hosts_custom: {}
 speedtest_docker_hosts: "{{ docker_hosts_common
                             | combine(speedtest_docker_hosts_default)
                             | combine(speedtest_docker_hosts_custom) }}"
@@ -146,6 +158,3 @@ speedtest_docker_state: started
 
 # Force Kill
 speedtest_docker_force_kill: yes
-
-# Stop Timeout
-speedtest_docker_stop_timeout: 10

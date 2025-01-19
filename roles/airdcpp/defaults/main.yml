@@ -35,9 +35,9 @@ airdcpp_paths_folders_list:
 airdcpp_web_subdomain: "{{ airdcpp_name }}"
 airdcpp_web_domain: "{{ user.domain }}"
 airdcpp_web_port: "5600"
-airdcpp_web_url: "{{ 'https://' + airdcpp_web_subdomain + '.' + airdcpp_web_domain
-                  if (reverse_proxy_is_enabled)
-                  else 'http://localhost:' + airdcpp_web_port }}"
+airdcpp_web_url: "{{ 'https://' + (airdcpp_web_subdomain + '.' + airdcpp_web_domain
+                  if (airdcpp_web_subdomain | length > 0)
+                  else airdcpp_web_domain) }}"
 
 ################################
 # DNS
@@ -51,9 +51,13 @@ airdcpp_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-airdcpp_traefik_middleware: "{{ traefik_default_middleware }}"
+airdcpp_traefik_sso_middleware: ""
+airdcpp_traefik_middleware_default: "{{ traefik_default_middleware }}"
+airdcpp_traefik_middleware_custom: ""
 airdcpp_traefik_certresolver: "{{ traefik_default_certresolver }}"
 airdcpp_traefik_enabled: true
+airdcpp_traefik_api_enabled: false
+airdcpp_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -93,11 +97,9 @@ airdcpp_docker_commands: "{{ airdcpp_docker_commands_default
 airdcpp_docker_volumes_default:
   - "{{ airdcpp_paths_location }}:/.airdcpp"
   - "/mnt/local/downloads/airdcpp:/Downloads"
-  - "/mnt:/mnt"
 airdcpp_docker_volumes_custom: []
 airdcpp_docker_volumes: "{{ airdcpp_docker_volumes_default
-                            + airdcpp_docker_volumes_custom
-                            + docker_volumes_downloads_common }}"
+                            + airdcpp_docker_volumes_custom }}"
 
 # Devices
 airdcpp_docker_devices_default: []
@@ -106,8 +108,8 @@ airdcpp_docker_devices: "{{ airdcpp_docker_devices_default
                             + airdcpp_docker_devices_custom }}"
 
 # Hosts
-airdcpp_docker_hosts_default: []
-airdcpp_docker_hosts_custom: []
+airdcpp_docker_hosts_default: {}
+airdcpp_docker_hosts_custom: {}
 airdcpp_docker_hosts: "{{ docker_hosts_common
                           | combine(airdcpp_docker_hosts_default)
                           | combine(airdcpp_docker_hosts_custom) }}"

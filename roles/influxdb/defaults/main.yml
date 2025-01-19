@@ -38,9 +38,7 @@ influxdb_docker_image: "influxdb:{{ influxdb_docker_image_tag }}"
 influxdb_docker_ports_defaults: []
 influxdb_docker_ports_custom: []
 influxdb_docker_ports: "{{ influxdb_docker_ports_defaults
-                           + influxdb_docker_ports_custom
-                        if (not reverse_proxy_is_enabled)
-                        else [] + influxdb_docker_ports_custom }}"
+                           + influxdb_docker_ports_custom }}"
 
 # Envs
 influxdb_docker_envs_default: {}
@@ -59,8 +57,7 @@ influxdb_docker_volumes_default:
   - "{{ influxdb_paths_location }}:/var/lib/influxdb"
 influxdb_docker_volumes_custom: []
 influxdb_docker_volumes: "{{ influxdb_docker_volumes_default
-                             + influxdb_docker_volumes_custom
-                             + docker_volumes_downloads_common }}"
+                             + influxdb_docker_volumes_custom }}"
 
 # Devices
 influxdb_docker_devices_default: []
@@ -69,8 +66,8 @@ influxdb_docker_devices: "{{ influxdb_docker_devices_default
                              + influxdb_docker_devices_custom }}"
 
 # Hosts
-influxdb_docker_hosts_default: []
-influxdb_docker_hosts_custom: []
+influxdb_docker_hosts_default: {}
+influxdb_docker_hosts_custom: {}
 influxdb_docker_hosts: "{{ docker_hosts_common
                            | combine(influxdb_docker_hosts_default)
                            | combine(influxdb_docker_hosts_custom) }}"

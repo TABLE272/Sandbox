@@ -31,9 +31,9 @@ filebrowser_paths_db_location: "{{ filebrowser_paths_location }}/filebrowser.db"
 filebrowser_web_subdomain: "{{ filebrowser_name }}"
 filebrowser_web_domain: "{{ user.domain }}"
 filebrowser_web_port: "80"
-filebrowser_web_url: "{{ 'https://' + filebrowser_web_subdomain + '.' + filebrowser_web_domain
-                      if (reverse_proxy_is_enabled)
-                      else 'http://localhost:' + filebrowser_web_port }}"
+filebrowser_web_url: "{{ 'https://' + (filebrowser_web_subdomain + '.' + filebrowser_web_domain
+                      if (filebrowser_web_subdomain | length > 0)
+                      else filebrowser_web_domain) }}"
 
 ################################
 # DNS
@@ -48,13 +48,12 @@ filebrowser_dns_proxy: "{{ dns.proxied }}"
 ################################
 
 filebrowser_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
-filebrowser_traefik_middleware: "{{ traefik_default_middleware + ',' + filebrowser_traefik_sso_middleware
-                                 if (filebrowser_traefik_sso_middleware | length > 0)
-                                 else traefik_default_middleware }}"
+filebrowser_traefik_middleware_default: "{{ traefik_default_middleware }}"
+filebrowser_traefik_middleware_custom: ""
 filebrowser_traefik_certresolver: "{{ traefik_default_certresolver }}"
 filebrowser_traefik_enabled: true
 filebrowser_traefik_api_enabled: true
-filebrowser_traefik_api_endpoint: "`/api/public`,`/share`,`/static`"
+filebrowser_traefik_api_endpoint: "PathPrefix(`/api`) || PathPrefix(`/share`) || PathPrefix(`/static`) || PathPrefix(`/api/public`)"
 
 ################################
 # Docker
@@ -69,13 +68,10 @@ filebrowser_docker_image_tag: "latest"
 filebrowser_docker_image: "filebrowser/filebrowser:{{ filebrowser_docker_image_tag }}"
 
 # Ports
-filebrowser_docker_ports_defaults:
-  - "{{ filebrowser_web_port }}"
+filebrowser_docker_ports_defaults: []
 filebrowser_docker_ports_custom: []
 filebrowser_docker_ports: "{{ filebrowser_docker_ports_defaults
-                              + filebrowser_docker_ports_custom
-                           if (not reverse_proxy_is_enabled)
-                           else [] + filebrowser_docker_ports_custom }}"
+                              + filebrowser_docker_ports_custom }}"
 
 # Envs
 filebrowser_docker_envs_default:
@@ -97,8 +93,7 @@ filebrowser_docker_volumes_default:
   - "/mnt/unionfs:/srv"
 filebrowser_docker_volumes_custom: []
 filebrowser_docker_volumes: "{{ filebrowser_docker_volumes_default
-                                + filebrowser_docker_volumes_custom
-                                + docker_volumes_downloads_common }}"
+                                + filebrowser_docker_volumes_custom }}"
 
 # Devices
 filebrowser_docker_devices_default: []
@@ -107,8 +102,8 @@ filebrowser_docker_devices: "{{ filebrowser_docker_devices_default
                                 + filebrowser_docker_devices_custom }}"
 
 # Hosts
-filebrowser_docker_hosts_default: []
-filebrowser_docker_hosts_custom: []
+filebrowser_docker_hosts_default: {}
+filebrowser_docker_hosts_custom: {}
 filebrowser_docker_hosts: "{{ docker_hosts_common
                               | combine(filebrowser_docker_hosts_default)
                               | combine(filebrowser_docker_hosts_custom) }}"
@@ -151,3 +146,10 @@ filebrowser_docker_state: started
 
 # User
 filebrowser_docker_user: "{{ uid }}:{{ gid }}"
+
+filebrowser_docker_healthcheck:
+  test: ["CMD", "curl", "--fail", "http://127.0.0.1:{{ filebrowser_web_port }}"]
+  interval: 5s
+  timeout: 3s
+  retries: 3
+  start_period: 2s

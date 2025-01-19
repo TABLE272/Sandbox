@@ -29,10 +29,10 @@ komga_paths_folders_list:
 
 komga_web_subdomain: "{{ komga_name }}"
 komga_web_domain: "{{ user.domain }}"
-komga_web_port: "8080"
-komga_web_url: "{{ 'https://' + komga_web_subdomain + '.' + komga_web_domain
-                if (reverse_proxy_is_enabled)
-                else 'http://localhost:' + komga_web_port }}"
+komga_web_port: "25600"
+komga_web_url: "{{ 'https://' + (komga_web_subdomain + '.' + komga_web_domain
+                if (komga_web_subdomain | length > 0)
+                else komga_web_domain) }}"
 
 ################################
 # DNS
@@ -46,9 +46,13 @@ komga_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-komga_traefik_middleware: "{{ traefik_default_middleware }}"
+komga_traefik_sso_middleware: ""
+komga_traefik_middleware_default: "{{ traefik_default_middleware }}"
+komga_traefik_middleware_custom: ""
 komga_traefik_certresolver: "{{ traefik_default_certresolver }}"
 komga_traefik_enabled: true
+komga_traefik_api_enabled: false
+komga_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -63,13 +67,10 @@ komga_docker_image_tag: "latest"
 komga_docker_image: "gotson/komga:{{ komga_docker_image_tag }}"
 
 # Ports
-komga_docker_ports_defaults:
-  - "{{ komga_web_port }}"
+komga_docker_ports_defaults: []
 komga_docker_ports_custom: []
 komga_docker_ports: "{{ komga_docker_ports_defaults
-                        + komga_docker_ports_custom
-                     if (not reverse_proxy_is_enabled)
-                     else [] + komga_docker_ports_custom }}"
+                        + komga_docker_ports_custom }}"
 
 # Envs
 komga_docker_envs_default: {}
@@ -87,11 +88,9 @@ komga_docker_commands: "{{ komga_docker_commands_default
 komga_docker_volumes_default:
   - "{{ komga_paths_location }}:/config"
   - "/mnt/unionfs/Media/Comics:/comics"
-  - "/mnt:/mnt"
 komga_docker_volumes_custom: []
 komga_docker_volumes: "{{ komga_docker_volumes_default
-                          + komga_docker_volumes_custom
-                          + docker_volumes_downloads_common }}"
+                          + komga_docker_volumes_custom }}"
 
 # Devices
 komga_docker_devices_default: []
@@ -100,8 +99,8 @@ komga_docker_devices: "{{ komga_docker_devices_default
                           + komga_docker_devices_custom }}"
 
 # Hosts
-komga_docker_hosts_default: []
-komga_docker_hosts_custom: []
+komga_docker_hosts_default: {}
+komga_docker_hosts_custom: {}
 komga_docker_hosts: "{{ docker_hosts_common
                         | combine(komga_docker_hosts_default)
                         | combine(komga_docker_hosts_custom) }}"

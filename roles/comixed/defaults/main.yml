@@ -31,9 +31,9 @@ comixed_paths_folders_list:
 comixed_web_subdomain: "{{ comixed_name }}"
 comixed_web_domain: "{{ user.domain }}"
 comixed_web_port: "7171"
-comixed_web_url: "{{ 'https://' + comixed_web_subdomain + '.' + comixed_web_domain
-                  if (reverse_proxy_is_enabled)
-                  else 'http://localhost:' + comixed_web_port }}"
+comixed_web_url: "{{ 'https://' + (comixed_web_subdomain + '.' + comixed_web_domain
+                  if (comixed_web_subdomain | length > 0)
+                  else comixed_web_domain) }}"
 
 ################################
 # DNS
@@ -47,7 +47,9 @@ comixed_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-comixed_traefik_middleware: "{{ traefik_default_middleware }}"
+comixed_traefik_sso_middleware: ""
+comixed_traefik_middleware_default: "{{ traefik_default_middleware }}"
+comixed_traefik_middleware_custom: ""
 comixed_traefik_certresolver: "{{ traefik_default_certresolver }}"
 comixed_traefik_enabled: true
 
@@ -64,13 +66,10 @@ comixed_docker_image_tag: "latest"
 comixed_docker_image: "comixed/comixed:{{ comixed_docker_image_tag }}"
 
 # Ports
-comixed_docker_ports_defaults:
-  - "{{ comixed_web_port }}"
+comixed_docker_ports_defaults: []
 comixed_docker_ports_custom: []
 comixed_docker_ports: "{{ comixed_docker_ports_defaults
-                          + comixed_docker_ports_custom
-                       if (not reverse_proxy_is_enabled)
-                       else [] + comixed_docker_ports_custom }}"
+                          + comixed_docker_ports_custom }}"
 
 # Envs
 comixed_docker_envs_default: {}
@@ -88,11 +87,9 @@ comixed_docker_commands: "{{ comixed_docker_commands_default
 comixed_docker_volumes_default:
   - "{{ comixed_paths_location }}:/root/.comixed"
   - "/mnt/unionfs/Media/Comics:/comic_dir"
-  - "/mnt:/mnt"
 comixed_docker_volumes_custom: []
 comixed_docker_volumes: "{{ comixed_docker_volumes_default
-                            + comixed_docker_volumes_custom
-                            + docker_volumes_downloads_common }}"
+                            + comixed_docker_volumes_custom }}"
 
 # Devices
 comixed_docker_devices_default: []
@@ -101,8 +98,8 @@ comixed_docker_devices: "{{ comixed_docker_devices_default
                             + comixed_docker_devices_custom }}"
 
 # Hosts
-comixed_docker_hosts_default: []
-comixed_docker_hosts_custom: []
+comixed_docker_hosts_default: {}
+comixed_docker_hosts_custom: {}
 comixed_docker_hosts: "{{ docker_hosts_common
                           | combine(comixed_docker_hosts_default)
                           | combine(comixed_docker_hosts_custom) }}"

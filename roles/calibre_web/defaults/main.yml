@@ -21,6 +21,7 @@ calibre_web_paths_folder: "{{ calibre_web_name }}"
 calibre_web_paths_location: "{{ server_appdata_path }}/{{ calibre_web_paths_folder }}"
 calibre_web_paths_folders_list:
   - "{{ calibre_web_paths_location }}"
+  - "{{ calibre_web_paths_location }}/cache"
 
 ################################
 # Web
@@ -29,9 +30,9 @@ calibre_web_paths_folders_list:
 calibre_web_web_subdomain: "{{ calibre_web_name }}"
 calibre_web_web_domain: "{{ user.domain }}"
 calibre_web_web_port: "8083"
-calibre_web_web_url: "{{ 'https://' + calibre_web_web_subdomain + '.' + calibre_web_web_domain
-                      if (reverse_proxy_is_enabled)
-                      else 'http://localhost:' + calibre_web_web_port }}"
+calibre_web_web_url: "{{ 'https://' + (calibre_web_web_subdomain + '.' + calibre_web_web_domain
+                      if (calibre_web_web_subdomain | length > 0)
+                      else calibre_web_web_domain) }}"
 
 ################################
 # DNS
@@ -45,7 +46,9 @@ calibre_web_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-calibre_web_traefik_middleware: "{{ traefik_default_middleware }}"
+calibre_web_traefik_sso_middleware: ""
+calibre_web_traefik_middleware_default: "{{ traefik_default_middleware }},kobo-sync-headers"
+calibre_web_traefik_middleware_custom: ""
 calibre_web_traefik_certresolver: "{{ traefik_default_certresolver }}"
 calibre_web_traefik_enabled: true
 
@@ -53,7 +56,7 @@ calibre_web_traefik_enabled: true
 # THEME
 ################################
 
-# Options can be found at https://github.com/gilbN/theme.park
+# Options can be found at https://github.com/themepark-dev/theme.park
 calibre_web_themepark_enabled: false
 calibre_web_themepark_theme: "{{ global_themepark_theme }}"
 calibre_web_themepark_domain: "{{ global_themepark_domain }}"
@@ -68,27 +71,25 @@ calibre_web_docker_container: "{{ calibre_web_name }}"
 # Image
 calibre_web_docker_image_pull: true
 calibre_web_docker_image_tag: "latest"
-calibre_web_docker_image: "ghcr.io/lscr.io/linuxserver/calibre-web:{{ calibre_web_docker_image_tag }}"
+calibre_web_docker_image: "lscr.io/linuxserver/calibre-web:{{ calibre_web_docker_image_tag }}"
 
 # Ports
-calibre_web_docker_ports_defaults:
-  - "{{ calibre_web_web_port }}"
+calibre_web_docker_ports_defaults: []
 calibre_web_docker_ports_custom: []
 calibre_web_docker_ports: "{{ calibre_web_docker_ports_defaults
-                              + calibre_web_docker_ports_custom
-                           if (not reverse_proxy_is_enabled)
-                           else [] + calibre_web_docker_ports_custom }}"
+                              + calibre_web_docker_ports_custom }}"
 
 # Envs
 calibre_web_docker_envs_default:
   PUID: "{{ uid }}"
   PGID: "{{ gid }}"
   TZ: "{{ tz }}"
+  CACHE_DIR: "/cache/"
   USE_CONFIG_DIR: "true"
-  DOCKER_MODS: lscr.io/linuxserver/calibre-web:calibre
+  DOCKER_MODS: linuxserver/mods:universal-calibre
 calibre_web_docker_envs_custom: {}
 calibre_web_docker_envs_theme:
-  DOCKER_MODS: "lscr.io/linuxserver/calibre-web:calibre|ghcr.io/gilbn/theme.park:calibre-web"
+  DOCKER_MODS: "linuxserver/mods:universal-calibre|ghcr.io/themepark-dev/theme.park:calibre-web"
   TP_DOMAIN: "{{ calibre_web_themepark_domain }}"
   TP_THEME: "{{ calibre_web_themepark_theme }}"
 calibre_web_docker_envs: "{{ calibre_web_docker_envs_default
@@ -108,12 +109,11 @@ calibre_web_docker_commands: "{{ calibre_web_docker_commands_default
 calibre_web_docker_volumes_default:
   - "{{ calibre_web_paths_location }}:/calibre-web"
   - "{{ calibre_web_paths_location }}/config:/config"
+  - "{{ calibre_web_paths_location }}/cache:/cache"
   - "/mnt/unionfs/Media/Books:/books"
-  - "/mnt:/mnt"
 calibre_web_docker_volumes_custom: []
 calibre_web_docker_volumes: "{{ calibre_web_docker_volumes_default
-                                + calibre_web_docker_volumes_custom
-                                + docker_volumes_downloads_common }}"
+                                + calibre_web_docker_volumes_custom }}"
 
 # Devices
 calibre_web_docker_devices_default: []
@@ -122,14 +122,15 @@ calibre_web_docker_devices: "{{ calibre_web_docker_devices_default
                                 + calibre_web_docker_devices_custom }}"
 
 # Hosts
-calibre_web_docker_hosts_default: []
-calibre_web_docker_hosts_custom: []
+calibre_web_docker_hosts_default: {}
+calibre_web_docker_hosts_custom: {}
 calibre_web_docker_hosts: "{{ docker_hosts_common
                               | combine(calibre_web_docker_hosts_default)
                               | combine(calibre_web_docker_hosts_custom) }}"
 
 # Labels
-calibre_web_docker_labels_default: {}
+calibre_web_docker_labels_default:
+  traefik.http.middlewares.kobo-sync-headers.headers.customrequestheaders.X-Scheme: "https"
 calibre_web_docker_labels_custom: {}
 calibre_web_docker_labels: "{{ docker_labels_common
                                | combine(calibre_web_docker_labels_default)

@@ -1,0 +1,16 @@
+##########################################################################
+# Title:            Sandbox: InfluxDB2                                   #
+# Author(s):        desimaniac, kowalski, owine                          #
+# URL:              https://github.com/saltyorg/Sandbox                  #
+# --                                                                     #
+##########################################################################
+#                   GNU General Public License v3.0                      #
+##########################################################################
+---
+- name: "Execute InfluxDB2 roles"
+  ansible.builtin.include_tasks: main2.yml
+  vars:
+    influxdb2_name: "{{ instance }}"
+  with_items: "{{ influxdb2_instances }}"
+  loop_control:
+    loop_var: instance

@@ -1,16 +1,19 @@
-####################################################################################
-# Title:         Sandbox: rflood | Post-Install | Settings | Existing Installs     #
-# Author(s):     salty                                                             #
-# URL:           https://github.com/saltyorg/Sandbox                               #
-# --                                                                               #
-####################################################################################
-#                   GNU General Public License v3.0                                #
-####################################################################################
+######################################################################################
+# Title:         Sandbox: Transmission | Post-Install | Settings | Existing Installs #
+# Author(s):     salty                                                               #
+# URL:           https://github.com/saltyorg/Sandbox                                 #
+# --                                                                                 #
+######################################################################################
+#                   GNU General Public License v3.0                                  #
+######################################################################################
 ---
 - name: Post-Install | Settings | Update 'settings.json' config settings
-  shell: jq '."peer-port"={{ transmission_docker_ports_51413 }}' "{{ transmission_paths_setttings_location }}" | sponge "{{ transmission_paths_setttings_location }}"  # noqa 204
+  ansible.builtin.shell: jq '."peer-port"={{ transmission_docker_ports_51413 }}' "{{ transmission_paths_setttings_location }}" | sponge "{{ transmission_paths_setttings_location }}"  # noqa 204
 
 - name: Post-Install | Settings | Set '{{ transmission_paths_location }}' ownership recursively
-  shell: "chown -R {{ user.name }}:{{ user.name }} {{ transmission_paths_location }}"
-  args:
-    warn: false
+  ansible.builtin.file:
+    path: "{{ transmission_paths_location }}"
+    state: directory
+    recurse: yes
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"

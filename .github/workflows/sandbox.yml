@@ -7,6 +7,8 @@ on:
       - '*.md'
       - '.gitignore'
       - 'roles/settings/**'
+    branches-ignore:
+      - 'dependabot/**'
   pull_request:
     paths-ignore:
       - '*.md'
@@ -15,31 +17,62 @@ on:
   workflow_dispatch:
 
 jobs:
+  ansible-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'requirements/requirements-lint.txt'
+
+      - name: Install packages
+        run: pip install -r ./requirements/requirements-lint.txt
+
+      - name: Run ansible linter
+        working-directory: ${{ github.workspace }}
+        run: ansible-lint
+
+      - name: Run salty linter
+        run: python3 ./scripts/salty-linter.py ./roles
+
+  check-entries:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Missing Entries
+        run: ./scripts/check_missing_entries.sh
+
   find-roles:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - id: set-matrix
-        run: OUTPUT=$(awk -F'[][]' -e '/ role:/ && FNR > 13' sandbox.yml | awk '!/#/' | awk -F'[][]' '{print $2}' | tr '\n' ',' | sed 's/,*$//' | sed "s/.\(roles\|hetzner_nfs_server_uninstall\|hetzner_nfs_client_mount\|hetzner_nfs_client_unmount\).,//g") && echo "::set-output name=matrix::{\"roles\":[$OUTPUT]}"
+        run: echo "matrix={\"roles\":[$(awk '/# Apps Start/{flag=1;next}/# Apps End/{flag=0}flag' sandbox.yml | awk '!/#/' | awk -F'[][]' '{print $2}' | tr '\n' ',' | sed 's/,*$//' | awk -F',' '{ for( i=1; i<=NF; i++ ) print $i }' | awk '{ gsub(/ /,""); print }'| sort -u | awk -vORS=, '{ print $1 }' | sed 's/,$/\n/')]}" >> $GITHUB_OUTPUT
 
   install:
     name: '${{ matrix.roles }}'
-    needs: find-roles
-    runs-on: ubuntu-20.04
+    needs: [ansible-lint, check-entries, find-roles]
+    runs-on: ubuntu-24.04
     strategy:
-      matrix: ${{fromJson(needs.find-roles.outputs.matrix)}}
+      matrix: ${{ fromJson(needs.find-roles.outputs.matrix) }}
       fail-fast: false
-
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: curl https://raw.githubusercontent.com/saltyorg/sb/master/sb_install.sh --output sb_install.sh && sudo bash sb_install.sh -v
+        run: curl https://raw.githubusercontent.com/saltyorg/sb/master/sb_install.sh --output sb_install.sh && sudo bash sb_install.sh -v && ansible --version
 
       - name: Chown /srv/git
         run: sudo chown -R runner:runner /srv/git
+
+      - name: Print pip dependencies
+        run: cat /srv/git/sb/requirements-saltbox.txt
 
       - name: Edit accounts.yml
         run: cd /srv/git/saltbox && sed -i 's/seed/runner/g' accounts.yml
@@ -50,24 +83,18 @@ jobs:
       - name: Syntax Check
         run: cd /srv/git/saltbox && sudo ansible-playbook saltbox.yml --syntax-check
 
-      - name: Install Saltbox
-        run: cd /srv/git/saltbox && sudo ansible-playbook saltbox.yml --tags "core" --skip-tags "sanity_check,settings" --extra-vars '{"continuous_integration":true}'
+      - name: Create CI vars file
+        run: |
+          echo "continuous_integration: true" > /tmp/vars.yml
+          echo "dockerhub:" >> /tmp/vars.yml
+          echo "  token: ${{ secrets.DOCKERHUB_TOKEN }}" >> /tmp/vars.yml
+          echo "  user: ${{ secrets.DOCKERHUB_USERNAME }}" >> /tmp/vars.yml
+
+      - name: Install Saltbox Core
+        run: cd /srv/git/saltbox && sudo ansible-playbook saltbox.yml --tags "core" --skip-tags "settings" --extra-vars "@/tmp/vars.yml"
 
       - name: Copy default configuration
         run: cp -n defaults/ansible.cfg.default ansible.cfg && cp -n defaults/settings.yml.default settings.yml
 
       - name: Install ${{ matrix.roles }}
-        run: sudo ansible-playbook sandbox.yml --tags "${{ matrix.roles }}" --skip-tags "sanity_check,settings" --extra-vars '{"continuous_integration":true}'
-
-  webhook:
-    name: '${{ matrix.roles }}'
-    runs-on: ubuntu-20.04
-    needs: install
-    if: always()
-    steps:
-      - uses: technote-space/workflow-conclusion-action@v2
-      - uses: sarisia/actions-status-discord@v1
-        if: always()
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ env.WORKFLOW_CONCLUSION }}
+        run: sudo ansible-playbook sandbox.yml --tags "${{ matrix.roles }}" --skip-tags "settings" --extra-vars "@/tmp/vars.yml"

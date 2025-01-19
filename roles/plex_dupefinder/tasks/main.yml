@@ -1,0 +1,102 @@
+#########################################################################
+# Title:         Sandbox: Plex Dupefinder Role                          #
+# Author(s):     l3uddz, salty                                          #
+# URL:           https://github.com/saltyorg/Sandbox                    #
+# --                                                                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+- name: Set Default Plex instance
+  ansible.builtin.set_fact:
+    plex_name: "{{ plex_name | default(plex_instances[0]) }}"
+
+- name: Create plex_dupefinder directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0775"
+    recurse: yes
+  with_items:
+    - /opt/plex_dupefinder
+
+- name: Clone plex_dupefinder
+  ansible.builtin.git:
+    repo: https://github.com/l3uddz/plex_dupefinder.git
+    dest: /opt/plex_dupefinder
+    clone: true
+    version: HEAD
+    force: true
+  become: true
+  become_user: "{{ user.name }}"
+
+- name: Set Python version
+  ansible.builtin.set_fact:
+    plex_dupefinder_python: "{{ 'python3'
+                             if ansible_distribution_version is version('20.04', '==')
+                             else 'python3.8' }}"
+
+- name: "Execute Python role"
+  ansible.builtin.include_role:
+    name: "python"
+  vars:
+    python_version: "3.8"
+  when: ansible_distribution_version is version('20.04', '!=')
+
+- name: Delete venv folder
+  ansible.builtin.file:
+    path: "/opt/plex_dupefinder/venv"
+    state: absent
+
+- name: Create venv
+  ansible.builtin.command:
+    cmd: "{{ plex_dupefinder_python }} -m venv /opt/plex_dupefinder/venv"
+  args:
+    creates: "/opt/plex_dupefinder/venv"
+  become: true
+  become_user: "{{ user.name }}"
+
+- name: Install pip requirements
+  ansible.builtin.pip:
+    requirements: "/opt/plex_dupefinder/requirements.txt"
+    virtualenv: "/opt/plex_dupefinder/venv"
+    virtualenv_command: "/opt/plex_dupefinder/venv/bin/python3 -m pip"
+  become: true
+  become_user: "{{ user.name }}"
+
+- name: Check config exists
+  ansible.builtin.stat:
+    path: "/opt/plex_dupefinder/config.json"
+  register: plex_dupefinder_config
+
+- name: Import Plex Auth Token role
+  ansible.builtin.include_role:
+    name: plex_auth_token
+  when: plex_account_is_enabled and not plex_dupefinder_config.stat.exists
+
+- name: Import default config
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /opt/plex_dupefinder/config.json
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0664"
+    force: false
+
+- name: Set plex_dupefinder.py as executable
+  ansible.builtin.file:
+    path: /opt/plex_dupefinder/plex_dupefinder.py
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: a+x
+
+- name: Import bash wrapper
+  ansible.builtin.template:
+    src: plex_dupefinder.j2
+    dest: /usr/local/bin/plex_dupefinder
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0775"
+    force: true

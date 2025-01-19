@@ -1,0 +1,160 @@
+#########################################################################
+# Title:            Saltbox: minecraft                                  #
+# Author(s):        jolbol1, salty                                      #
+# URL:              https://github.com/saltyorg/Saltbox                 #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+################################
+# Basics
+################################
+
+minecraft_instances: ["minecraft"]
+minecraft_dynmap_router_enabled: false
+
+################################
+# Paths
+################################
+
+minecraft_paths_folder: "minecraft"
+minecraft_paths_location: "{{ server_appdata_path }}/{{ minecraft_paths_folder }}"
+minecraft_paths_folders_list:
+  - "{{ minecraft_paths_location }}/"
+  - "{{ minecraft_paths_location }}/{{ minecraft_name }}"
+  - "{{ minecraft_paths_location }}/{{ minecraft_name }}/data"
+minecraft_paths_recursive: true
+
+################################
+# Web
+################################
+
+minecraft_web_subdomain: "{{ minecraft_name }}"
+minecraft_web_domain: "{{ user.domain }}"
+# Dynmap
+minecraft_web_port: "8123"
+
+################################
+# DNS
+################################
+
+minecraft_dns_record: "{{ lookup('vars', minecraft_name + '_web_subdomain', default=minecraft_web_subdomain) }}"
+minecraft_dns_zone: "{{ lookup('vars', minecraft_name + '_web_domain', default=minecraft_web_domain) }}"
+minecraft_dns_proxy: false
+
+################################
+# Traefik
+################################
+
+minecraft_traefik_sso_middleware: ""
+minecraft_traefik_middleware_default: "{{ traefik_default_middleware }}"
+minecraft_traefik_middleware_custom: ""
+minecraft_traefik_certresolver: "{{ traefik_default_certresolver }}"
+minecraft_traefik_enabled: "{{ lookup('vars', minecraft_name + '_dynmap_router_enabled', default=minecraft_dynmap_router_enabled) }}"
+
+################################
+# Ports
+################################
+minecraft_docker_ports_25565: "{{ port_lookup_minecraft_tcp.meta.port
+                               if (port_lookup_minecraft_tcp.meta.port is defined) and (port_lookup_minecraft_tcp.meta.port | trim | length > 0)
+                               else '25565' }}"
+
+################################
+# Docker
+################################
+
+# Container
+minecraft_docker_container: "{{ minecraft_name }}"
+
+# Image
+minecraft_docker_image_pull: true
+minecraft_docker_image_repo: "itzg/minecraft-server"
+minecraft_docker_image_tag: "latest"
+minecraft_docker_image: "{{ lookup('vars', minecraft_name + '_docker_image_repo', default=minecraft_docker_image_repo)
+                            + ':' + lookup('vars', minecraft_name + '_docker_image_tag', default=minecraft_docker_image_tag) }}"
+
+# Ports
+minecraft_docker_ports_defaults:
+  - "{{ minecraft_docker_ports_25565 }}:25565/tcp"
+minecraft_docker_ports_custom: []
+minecraft_docker_ports: "{{ lookup('vars', minecraft_name + '_docker_ports_defaults', default=minecraft_docker_ports_defaults)
+                            + lookup('vars', minecraft_name + '_docker_ports_custom', default=minecraft_docker_ports_custom) }}"
+
+# Envs
+minecraft_docker_envs_default:
+  TZ: "{{ tz }}"
+  EULA: "TRUE"
+  UID: "{{ uid }}"
+  GID: "{{ gid }}"
+minecraft_docker_envs_custom: {}
+minecraft_docker_envs: "{{ lookup('vars', minecraft_name + '_docker_envs_default', default=minecraft_docker_envs_default)
+                           | combine(lookup('vars', minecraft_name + '_docker_envs_custom', default=minecraft_docker_envs_custom)) }}"
+
+# Commands
+minecraft_docker_commands_default: []
+minecraft_docker_commands_custom: []
+minecraft_docker_commands: "{{ lookup('vars', minecraft_name + '_docker_commands_default', default=minecraft_docker_commands_default)
+                               + lookup('vars', minecraft_name + '_docker_commands_custom', default=minecraft_docker_commands_custom) }}"
+
+# Volumes
+minecraft_docker_volumes_default:
+  - "{{ minecraft_paths_location }}/{{ minecraft_name }}/data:/data"
+minecraft_docker_volumes_custom: []
+minecraft_docker_volumes: "{{ lookup('vars', minecraft_name + '_docker_volumes_default', default=minecraft_docker_volumes_default)
+                              + lookup('vars', minecraft_name + '_docker_volumes_custom', default=minecraft_docker_volumes_custom) }}"
+
+# Devices
+minecraft_docker_devices_default: []
+minecraft_docker_devices_custom: []
+minecraft_docker_devices: "{{ lookup('vars', minecraft_name + '_docker_devices_default', default=minecraft_docker_devices_default)
+                              + lookup('vars', minecraft_name + '_docker_devices_custom', default=minecraft_docker_devices_custom) }}"
+
+# Hosts
+minecraft_docker_hosts_default: {}
+minecraft_docker_hosts_custom: {}
+minecraft_docker_hosts: "{{ docker_hosts_common
+                            | combine(lookup('vars', minecraft_name + '_docker_hosts_default', default=minecraft_docker_hosts_default))
+                            | combine(lookup('vars', minecraft_name + '_docker_hosts_custom', default=minecraft_docker_hosts_custom)) }}"
+
+# Labels
+minecraft_docker_labels_default: {}
+minecraft_docker_labels_custom: {}
+minecraft_docker_labels: "{{ docker_labels_common
+                             | combine(lookup('vars', minecraft_name + '_docker_labels_default', default=minecraft_docker_labels_default))
+                             | combine(lookup('vars', minecraft_name + '_docker_labels_custom', default=minecraft_docker_labels_custom)) }}"
+
+# Hostname
+minecraft_docker_hostname: "{{ minecraft_name }}"
+
+# Network Mode
+minecraft_docker_network_mode_default: "{{ docker_networks_name_common }}"
+minecraft_docker_network_mode: "{{ lookup('vars', minecraft_name + '_docker_network_mode_default', default=minecraft_docker_network_mode_default) }}"
+
+# Networks
+minecraft_docker_networks_alias: "{{ minecraft_name }}"
+minecraft_docker_networks_default: []
+minecraft_docker_networks_custom: []
+minecraft_docker_networks: "{{ docker_networks_common
+                               + lookup('vars', minecraft_name + '_docker_networks_default', default=minecraft_docker_networks_default)
+                               + lookup('vars', minecraft_name + '_docker_networks_custom', default=minecraft_docker_networks_custom) }}"
+
+# Capabilities
+minecraft_docker_capabilities_default: []
+minecraft_docker_capabilities_custom: []
+minecraft_docker_capabilities: "{{ lookup('vars', minecraft_name + '_docker_capabilities_default', default=minecraft_docker_capabilities_default)
+                                   + lookup('vars', minecraft_name + '_docker_capabilities_custom', default=minecraft_docker_capabilities_custom) }}"
+
+# Security Opts
+minecraft_docker_security_opts_default: []
+minecraft_docker_security_opts_custom: []
+minecraft_docker_security_opts: "{{ lookup('vars', minecraft_name + '_docker_security_opts_default', default=minecraft_docker_security_opts_default)
+                                    + lookup('vars', minecraft_name + '_docker_security_opts_custom', default=minecraft_docker_security_opts_custom) }}"
+
+# Restart Policy
+minecraft_docker_restart_policy: unless-stopped
+
+# Stop Timeout
+minecraft_docker_stop_timeout: 900
+
+# State
+minecraft_docker_state: started

@@ -29,9 +29,9 @@ thelounge_paths_folders_list:
 thelounge_web_subdomain: "{{ thelounge_name }}"
 thelounge_web_domain: "{{ user.domain }}"
 thelounge_web_port: "9000"
-thelounge_web_url: "{{ 'https://' + thelounge_web_subdomain + '.' + thelounge_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + thelounge_web_port }}"
+thelounge_web_url: "{{ 'https://' + (thelounge_web_subdomain + '.' + thelounge_web_domain
+                    if (thelounge_web_subdomain | length > 0)
+                    else thelounge_web_domain) }}"
 
 ################################
 # DNS
@@ -45,9 +45,14 @@ thelounge_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-thelounge_traefik_middleware: "{{ traefik_default_middleware }}"
+thelounge_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+thelounge_traefik_middleware_default: "{{ traefik_default_middleware }}"
+thelounge_traefik_middleware_custom: ""
 thelounge_traefik_certresolver: "{{ traefik_default_certresolver }}"
 thelounge_traefik_enabled: true
+thelounge_traefik_api_enabled: true
+thelounge_traefik_api_endpoint: "PathPrefix(`/uploads`)"
+
 
 ################################
 # Docker
@@ -62,13 +67,10 @@ thelounge_docker_image_tag: "latest"
 thelounge_docker_image: "lscr.io/linuxserver/thelounge:{{ thelounge_docker_image_tag }}"
 
 # Ports
-thelounge_docker_ports_defaults:
-  - "{{ thelounge_web_port }}"
+thelounge_docker_ports_defaults: []
 thelounge_docker_ports_custom: []
 thelounge_docker_ports: "{{ thelounge_docker_ports_defaults
-                            + thelounge_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + thelounge_docker_ports_custom }}"
+                            + thelounge_docker_ports_custom }}"
 
 # Envs
 thelounge_docker_envs_default:
@@ -90,7 +92,7 @@ thelounge_docker_volumes_default:
   - "{{ thelounge_paths_location }}:/config"
 thelounge_docker_volumes_custom: []
 thelounge_docker_volumes: "{{ thelounge_docker_volumes_default
-                              + thelounge_docker_volumes_custom}}"
+                              + thelounge_docker_volumes_custom }}"
 
 # Devices
 thelounge_docker_devices_default: []
@@ -99,8 +101,8 @@ thelounge_docker_devices: "{{ thelounge_docker_devices_default
                               + thelounge_docker_devices_custom }}"
 
 # Hosts
-thelounge_docker_hosts_default: []
-thelounge_docker_hosts_custom: []
+thelounge_docker_hosts_default: {}
+thelounge_docker_hosts_custom: {}
 thelounge_docker_hosts: "{{ docker_hosts_common
                             | combine(thelounge_docker_hosts_default)
                             | combine(thelounge_docker_hosts_custom) }}"

@@ -8,34 +8,33 @@
 ##########################################################################
 ---
 - name: "unzippers | Check if '{{ jdownloader2_paths_tools_location }}/sevenzipjbinding1509.jar' exists"
-  stat:
+  ansible.builtin.stat:
     path: "{{ jdownloader2_paths_tools_location }}/sevenzipjbinding1509.jar"
   register: sevenzip_1509
 
 - name: "unzippers | Check if '{{ jdownloader2_paths_tools_location }}/sevenzipjbinding1509Linux.jar' exists"
-  stat:
+  ansible.builtin.stat:
     path: "{{ jdownloader2_paths_tools_location }}/sevenzipjbinding1509Linux.jar"
   register: sevenzip_1509linux
 
 - name: unzippers | Import tools "{{ jdownloader2_paths_tools_location | basename }}" tasks
   block:
-
     - name: unzippers | Import 7zip 1509
-      copy:
+      ansible.builtin.copy:
         src: "sevenzipjbinding1509.jar"
         dest: "{{ jdownloader2_paths_tools_location }}/sevenzipjbinding1509.jar"
         owner: "{{ user.name }}"
         group: "{{ user.name }}"
-        mode: 0775
+        mode: "0775"
         force: no
       when: not sevenzip_1509.stat.exists
 
     - name: unzippers | Import 7zip 1509Linux
-      copy:
+      ansible.builtin.copy:
         src: "sevenzipjbinding1509Linux.jar"
-        dest: "/opt/jdownloader2/config/libs/sevenzipjbinding1509Linux.jar"
+        dest: "{{ jdownloader2_paths_tools_location }}/sevenzipjbinding1509Linux.jar"
         owner: "{{ user.name }}"
         group: "{{ user.name }}"
-        mode: 0775
+        mode: "0775"
         force: no
       when: not sevenzip_1509linux.stat.exists

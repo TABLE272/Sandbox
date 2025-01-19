@@ -1,0 +1,26 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/en/configs/bookmarks
+
+- Saltbox:
+    - Core Repository:
+        - abbr: GH
+          # icon: github.png
+          href: https://github.com/saltyorg/Saltbox
+    - Sandbox Repository:
+        - abbr: GH
+          # icon: github.png
+          href: https://github.com/saltyorg/Sandbox
+    - Sandpit Repository:
+        - abbr: GH
+          # icon: github.png
+          href: https://github.com/saltyorg/Sandpit
+    - Saltbox Docs:
+        - abbr: DC
+          # icon: github.png
+          href: https://docs.saltbox.dev/
+- Misc:
+    - /r/selfhosted:
+        - abbr: RE
+          # icon: reddit.png
+          href: https://www.reddit.com/r/selfhosted/

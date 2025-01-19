@@ -1,0 +1,48 @@
+#########################################################################
+# Title:            Sandbox: Rocketchat                                 #
+# Author(s):        Minds3t, salty, dvsmasta                            #
+# URL:              https://github.com/saltyorg/Sandbox                 #
+# --                                                                    #
+#########################################################################
+#                   GNU General Public License v3.0                     #
+#########################################################################
+---
+- name: Add DNS record
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/dns/tasker.yml"
+  vars:
+    dns_record: "{{ lookup('vars', role_name + '_dns_record') }}"
+    dns_zone: "{{ lookup('vars', role_name + '_dns_zone') }}"
+    dns_proxy: "{{ lookup('vars', role_name + '_dns_proxy') }}"
+
+- name: Create directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "65533"
+    group: "65533"
+    mode: "0775"
+  with_items: "{{ lookup('vars', role_name + '_paths_folders_list') }}"
+
+- name: "RocketChat | Import init-mongo.js"
+  ansible.builtin.template:
+    src: init-mongo.js
+    dest: '{{ rocketchat_paths_location }}/init-mongo.js'
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0775"
+    force: yes
+
+- name: MongoDB Role
+  ansible.builtin.include_role:
+    name: mongodb
+  vars:
+    mongodb_instances: ["rocketchat_db"]
+    mongodb_docker_image_tag: "6"
+    mongodb_docker_commands: ["mongod --oplogSize 128 --replSet rs0"]
+    mongodb_docker_volumes_custom: ["{{ rocketchat_paths_location }}/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro"]
+
+- name: Remove existing Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/remove_docker_container.yml"
+
+- name: Create Docker container
+  ansible.builtin.include_tasks: "{{ resources_tasks_path }}/docker/create_docker_container.yml"

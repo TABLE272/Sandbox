@@ -8,14 +8,14 @@
 #########################################################################
 ---
 - name: "Touch Logs | Get 'sandbox.yml' info."
-  stat:
+  ansible.builtin.stat:
     path: "{{ playbook_dir }}/sandbox.yml"
   register: sandbox_yml
 
 - name: "Touch Logs | Touch 'sandbox.log'"
-  file:
+  ansible.builtin.file:
     path: "{{ playbook_dir }}/sandbox.log"
     state: touch
     owner: "{{ sandbox_yml.stat.uid }}"
     group: "{{ sandbox_yml.stat.gid }}"
-    mode: 0664
+    mode: "0664"

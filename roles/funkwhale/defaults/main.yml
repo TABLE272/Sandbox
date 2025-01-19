@@ -30,9 +30,9 @@ funkwhale_paths_folders_list:
 funkwhale_web_subdomain: "{{ funkwhale_name }}"
 funkwhale_web_domain: "{{ user.domain }}"
 funkwhale_web_port: "80"
-funkwhale_web_url: "{{ 'https://' + funkwhale_web_subdomain + '.' + funkwhale_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + funkwhale_web_port }}"
+funkwhale_web_url: "{{ 'https://' + (funkwhale_web_subdomain + '.' + funkwhale_web_domain
+                    if (funkwhale_web_subdomain | length > 0)
+                    else funkwhale_web_domain) }}"
 
 ################################
 # DNS
@@ -46,9 +46,13 @@ funkwhale_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-funkwhale_traefik_middleware: "{{ traefik_default_middleware }}"
+funkwhale_traefik_sso_middleware: ""
+funkwhale_traefik_middleware_default: "{{ traefik_default_middleware }}"
+funkwhale_traefik_middleware_custom: ""
 funkwhale_traefik_certresolver: "{{ traefik_default_certresolver }}"
 funkwhale_traefik_enabled: true
+funkwhale_traefik_api_enabled: false
+funkwhale_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -63,13 +67,10 @@ funkwhale_docker_image_tag: "latest"
 funkwhale_docker_image: "funkwhale/all-in-one:{{ funkwhale_docker_image_tag }}"
 
 # Ports
-funkwhale_docker_ports_defaults:
-  - "{{ funkwhale_web_port }}"
+funkwhale_docker_ports_defaults: []
 funkwhale_docker_ports_custom: []
 funkwhale_docker_ports: "{{ funkwhale_docker_ports_defaults
-                            + funkwhale_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + funkwhale_docker_ports_custom }}"
+                            + funkwhale_docker_ports_custom }}"
 
 # Envs
 funkwhale_docker_envs_default:
@@ -92,11 +93,9 @@ funkwhale_docker_commands: "{{ funkwhale_docker_commands_default
 funkwhale_docker_volumes_default:
   - "{{ funkwhale_paths_location }}/data:/data"
   - "/mnt/unionfs:/music:ro"
-  - "/mnt:/mnt:ro"
 funkwhale_docker_volumes_custom: []
 funkwhale_docker_volumes: "{{ funkwhale_docker_volumes_default
-                              + funkwhale_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + funkwhale_docker_volumes_custom }}"
 
 # Devices
 funkwhale_docker_devices_default: []
@@ -105,8 +104,8 @@ funkwhale_docker_devices: "{{ funkwhale_docker_devices_default
                               + funkwhale_docker_devices_custom }}"
 
 # Hosts
-funkwhale_docker_hosts_default: []
-funkwhale_docker_hosts_custom: []
+funkwhale_docker_hosts_default: {}
+funkwhale_docker_hosts_custom: {}
 funkwhale_docker_hosts: "{{ docker_hosts_common
                             | combine(funkwhale_docker_hosts_default)
                             | combine(funkwhale_docker_hosts_custom) }}"

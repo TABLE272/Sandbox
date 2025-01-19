@@ -30,9 +30,9 @@ filezilla_paths_folders_list:
 filezilla_web_subdomain: "{{ filezilla_name }}"
 filezilla_web_domain: "{{ user.domain }}"
 filezilla_web_port: "5800"
-filezilla_web_url: "{{ 'https://' + filezilla_web_subdomain + '.' + filezilla_web_domain
-                    if (reverse_proxy_is_enabled)
-                    else 'http://localhost:' + filezilla_web_port }}"
+filezilla_web_url: "{{ 'https://' + (filezilla_web_subdomain + '.' + filezilla_web_domain
+                    if (filezilla_web_subdomain | length > 0)
+                    else filezilla_web_domain) }}"
 
 ################################
 # DNS
@@ -46,10 +46,13 @@ filezilla_dns_proxy: "{{ dns.proxied }}"
 # Traefik
 ################################
 
-filezilla_traefik_middleware: "{{ traefik_default_middleware }},filezilla-auth"
+filezilla_traefik_sso_middleware: "{{ traefik_default_sso_middleware }}"
+filezilla_traefik_middleware_default: "{{ traefik_default_middleware }}"
+filezilla_traefik_middleware_custom: ""
 filezilla_traefik_certresolver: "{{ traefik_default_certresolver }}"
 filezilla_traefik_enabled: true
-filezilla_auth: "/etc/traefik/auth"
+filezilla_traefik_api_enabled: false
+filezilla_traefik_api_endpoint: ""
 
 ################################
 # Docker
@@ -64,13 +67,10 @@ filezilla_docker_image_tag: "latest"
 filezilla_docker_image: "jlesage/filezilla:{{ filezilla_docker_image_tag }}"
 
 # Ports
-filezilla_docker_ports_defaults:
-  - "{{ filezilla_web_port }}"
+filezilla_docker_ports_defaults: []
 filezilla_docker_ports_custom: []
 filezilla_docker_ports: "{{ filezilla_docker_ports_defaults
-                            + filezilla_docker_ports_custom
-                         if (not reverse_proxy_is_enabled)
-                         else [] + filezilla_docker_ports_custom }}"
+                            + filezilla_docker_ports_custom }}"
 
 # Envs
 filezilla_docker_envs_default:
@@ -91,12 +91,10 @@ filezilla_docker_commands: "{{ filezilla_docker_commands_default
 # Volumes
 filezilla_docker_volumes_default:
   - "{{ filezilla_paths_location }}/config:/config"
-  - "/mnt:/mnt"
   - "/home/{{ user.name }}:/storage"
 filezilla_docker_volumes_custom: []
 filezilla_docker_volumes: "{{ filezilla_docker_volumes_default
-                              + filezilla_docker_volumes_custom
-                              + docker_volumes_downloads_common }}"
+                              + filezilla_docker_volumes_custom }}"
 
 # Devices
 filezilla_docker_devices_default: []
@@ -105,15 +103,14 @@ filezilla_docker_devices: "{{ filezilla_docker_devices_default
                               + filezilla_docker_devices_custom }}"
 
 # Hosts
-filezilla_docker_hosts_default: []
-filezilla_docker_hosts_custom: []
+filezilla_docker_hosts_default: {}
+filezilla_docker_hosts_custom: {}
 filezilla_docker_hosts: "{{ docker_hosts_common
                             | combine(filezilla_docker_hosts_default)
                             | combine(filezilla_docker_hosts_custom) }}"
 
 # Labels
-filezilla_docker_labels_default:
-  traefik.http.middlewares.filezilla-auth.basicauth.usersfile: "{{ filezilla_auth }}"
+filezilla_docker_labels_default: {}
 filezilla_docker_labels_custom: {}
 filezilla_docker_labels: "{{ docker_labels_common
                              | combine(filezilla_docker_labels_default)

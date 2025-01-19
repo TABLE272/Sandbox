@@ -9,15 +9,15 @@
 ---
 # Check for config files and import they are missing
 - name: "Copy | Check if '{{ file }}' exists"
-  stat:
+  ansible.builtin.stat:
     path: "{{ playbook_dir }}/{{ file }}"
   register: file0
 
 - name: "Copy | Copy '{{ file }}.default' to '{{ file }}'"
-  copy:
+  ansible.builtin.copy:
     src: "{{ playbook_dir }}/defaults/{{ file }}.default"
     dest: "{{ playbook_dir }}/{{ file }}"
     owner: "{{ sandbox_yml.stat.uid }}"
     group: "{{ sandbox_yml.stat.gid }}"
-    mode: 0664
+    mode: "0664"
   when: not file0.stat.exists
